@@ -11,6 +11,7 @@ An advanced web tool to create, visualize, and export custom 3D terrain maps in 
 - **Responsive Design**: Accessible on various devices with an optimized user experience.
 
 ## Demo
+![terrain mountain](./public/terrain_mountain.gif)
 
 [Live Demo](https://your-demo-url.com)
 
@@ -19,7 +20,7 @@ An advanced web tool to create, visualize, and export custom 3D terrain maps in 
 1. **Clone the repository:**
 
    ```bash
-   git clone https://github.com/yourusername/create3dterrainmaps.git
+   git clone https://github.com/j03rul4nd/create3dterrainmaps.git
    ```
 
 2. **Navigate to the project directory:**
