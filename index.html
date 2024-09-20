@@ -1,0 +1,151 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/vite.svg" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+    <meta name="description" content="Advanced 3D Terrain Mapping Tool - Create custom maps and visualize them in 3D. Export and edit map data in real-time.">
+    <meta name="keywords" content="3D terrain, map editing, export maps, terrain visualization, custom maps, map providers, API integration">
+    <meta name="author" content="Joel Benitez">
+    
+    <!-- Optimización SEO -->
+    <title>3D Terrain Mapping Tool - Create, Customize and Export Maps</title>
+    
+    <!-- Marcado estructurado JSON-LD para SEO -->
+    <script type="application/ld+json">
+      {
+        "@context": "http://schema.org",
+        "@type": "SoftwareApplication",
+        "name": "3D Terrain Mapping Tool",
+        "description": "A web app for creating, visualizing, and exporting custom 3D terrain maps.",
+        "applicationCategory": "WebApplication",
+        "operatingSystem": "All",
+        "url": "https://tuwebapp.com",
+        "author": {
+          "@type": "Person",
+          "name": "Joel Benitez"
+        }
+      }
+    </script>
+
+    <!-- Incluye Open Graph para mejorar la visibilidad en redes sociales -->
+    <meta property="og:title" content="3D Terrain Mapping Tool - Create and Customize Maps">
+    <meta property="og:description" content="Edit your maps and visualize them in 3D. Customize map providers, add terrain details, and export your data with ease.">
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="https://tuwebapp.com">
+    <meta property="og:image" content="https://tuwebapp.com/images/preview.png">
+    
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/openlayers/openlayers.github.io@master/en/v4.6.5/css/ol.css" crossorigin="anonymous">
+
+   
+    <link rel="stylesheet" href="main.css">
+
+  </head>
+  <body>
+  
+    <!-- HEADER: Contiene título y posible navegación futura -->
+    <header role="banner">
+      <h1>3D Terrain Mapping Tool</h1>
+      <p>Visualize, Edit, and Export Custom 3D Terrain Maps</p>
+    </header>
+  
+    <!-- MAIN CONTENT -->
+    <main role="main">
+      <!-- Mapa Interactivo -->
+      <section id="map-section" aria-labelledby="map-title">
+        <h2 id="map-title">Interactive Map</h2>
+        <div id="map-container" aria-label="Interactive Map Display" role="region">
+          <div id="leaflet-map-container">
+            <!-- Aquí se renderizará el mapa -->
+            
+          </div>
+        </div>
+        <button  class="btn-stnd" id="capture-terrain-btn" aria-label="Capture Selected Terrain">Capture Terrain</button>
+      </section>
+  
+      <!-- Resultado de la Captura del Terreno -->
+      <article id="image-section" aria-labelledby="image-title">
+        <h2 id="image-title">Captured Terrain Image</h2>
+
+        <div class="content-image-responsive">
+
+          <div id="border-terrain-image">
+            <div id="content-terrain-image">
+              <canvas id="edited-canvas" style="display: none;"></canvas>
+              <img src="/mountain.png" id="terrain-image" alt="A terrain image captured from the interactive map" loading="lazy" role="img" />
+            </div>
+          </div>
+
+          <div class="responsive-image-section-options">
+            <!-- Controles de Edición de Imagen -->
+            <div class="sectionContentComponentCard" data-is-open="false">
+              <div class="toggleHeader" id="toggleHeaderImageOptions">
+                <h3>Image Adjustment</h3>
+                <div class="iconMoreContentAnimation">
+                  <div class="icon-top"></div>
+                  <div class="icon-bottom"></div>
+                </div>
+              </div>
+              
+              <div class="captionCardContent">
+                <label for="blackLevel">Black Level</label>
+                <input type="range" id="blackLevel" min="0" max="255" value="0" aria-label="Adjust the black level of the captured terrain image">
+                
+                <label for="whiteLevel">White Level</label>
+                <input type="range" id="whiteLevel" min="0" max="255" value="255" aria-label="Adjust the white level of the captured terrain image">
+                
+                <label for="gamma">Gamma</label>
+                <input type="range" id="gamma" min="0.1" max="5" step="0.1" value="1" aria-label="Adjust the gamma of the captured terrain image">
+              </div>
+              
+            </div>        
+
+            <button class="btn-stnd" id="generate-terrain-btn" aria-label="Generate 3D Terrain">Generate 3D Terrain</button>
+          
+          </div>
+        </div>
+
+      </article>
+  
+      <!-- Canvas para Visualización 3D -->
+      <section id="canvas-section" aria-labelledby="canvas-title" role="region">
+        <h2 id="canvas-title">3D Terrain Visualization</h2>
+        <div id="canvas-container">
+          <canvas id="terrain-canvas" aria-label="3D Terrain Visualization" loading="lazy"></canvas>
+        </div>
+      </section>
+      
+  
+      <!-- Controles de Exportación y Edición -->
+      <section id="controls-section" aria-labelledby="controls-title" role="complementary">
+        <h2 id="controls-title">Tools and Export Options</h2>
+        
+        <div id="export-controls" role="group" aria-labelledby="export-controls-title">
+          <h3 id="export-controls-title">Export Options</h3>
+          <div id="controls-group">
+            <button class="btn-stnd" id="export-image-btn" aria-label="Export the captured terrain image">Export Image</button>
+            <button class="btn-stnd" id="export-3d-btn" aria-label="Export the 3D terrain model">Export 3D Model</button>
+          </div>
+        </div>
+      </section>
+    </main>
+  
+    <!-- FOOTER: Links adicionales o información -->
+    <footer role="contentinfo">
+      <p>&copy; 2024 Joel Benitez - All Rights Reserved</p>
+      <ul>
+        <li><a href="https://www.linkedin.com/in/joel-benitez-iiot-industry/" target="_blank" aria-label="LinkedIn profile of Joel Benitez">LinkedIn</a></li>
+        <li><a href="https://joelbenitez.onrender.com/" target="_blank" aria-label="Joel Benitez's personal portfolio">Portfolio</a></li>
+      </ul>
+    </footer>
+  </body>
+
+
+  
+  <script async defer src="https://cdn.jsdelivr.net/gh/openlayers/openlayers.github.io@master/en/v4.6.5/build/ol.js"></script>
+  
+  <script src="./dat.gui.js"></script>
+
+  <script type="module" src="/main.js" defer></script>
+</html>

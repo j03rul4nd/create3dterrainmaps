@@ -1,0 +1,155 @@
+/* Estilos básicos para la card y la imagen */
+#border-terrain-image {
+    max-width: 600px; /* Ancho máximo para pantallas grandes */
+    min-width: 280px; /* Ancho mínimo para pantallas pequeñas */
+    margin: 0 auto; /* Centrar la tarjeta horizontalmente */
+    padding: 1rem; /* Espacio alrededor de la imagen */
+    border: 2px solid #ccc; /* Bordes para la card */
+    border-radius: 12px; /* Bordes redondeados */
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1); /* Sombra para efecto de tarjeta */
+    background-color: #fff; /* Fondo blanco */
+  }
+  
+  #content-terrain-image {
+    position: relative;
+    overflow: hidden;
+    border-radius: 12px;
+  }
+  
+  #terrain-image {
+    display: block;
+    width: 100%; /* La imagen ocupa el 100% del contenedor */
+    height: auto; /* Mantiene la proporción */
+    border-radius: 12px; /* Bordes redondeados de la imagen */
+    object-fit: cover; /* Mejora la visualización de imágenes de distintos tamaños */
+    transition: transform 0.4s ease-in-out; /* Transición suave para efecto */
+  }
+
+  #content-terrain-image:hover #terrain-image {
+    transform: scale(1.05); /* Efecto de zoom suave al pasar el ratón */
+  }
+
+  /* Media queries para pantallas */
+  @media (max-width: 1200px) {
+    #border-terrain-image {
+      max-width: 500px; /* Reducir tamaño en pantallas medianas */
+      padding: 0.8rem;
+    }
+  }
+  
+  @media (max-width: 768px) {
+    #border-terrain-image {
+      max-width: 400px; /* Tamaño más pequeño para tablets */
+      padding: 0.6rem;
+    }
+  }
+  
+  @media (max-width: 480px) {
+    #border-terrain-image {
+      max-width: 100%; /* En móviles, el contenedor ocupa el 100% del ancho */
+      min-width: unset; /* Quitar el min-width en pantallas móviles */
+      padding: 0.5rem;
+    }
+  }
+  
+  button#generate-terrain-btn {
+    box-shadow: 0 4px 6px #0000001a;
+    background-color: #fff;
+    display: flex;
+    border-radius: 5px;
+    flex-direction: column;
+    flex-wrap: nowrap;
+    align-items: center;
+    justify-content: center;
+    background: linear-gradient(#fff, #fff) padding-box, linear-gradient(90deg, #ed6e61, #6359e1) border-box;
+    border: 3px solid transparent;
+    cursor: pointer;
+}
+
+
+
+
+/* options image  */
+
+.sectionContentComponentCard {
+  border-bottom: 1px solid #000000;
+  border-top: 1px solid #000000;
+  margin-bottom: 1rem;
+  margin-top: 1rem;
+  overflow: hidden;
+  max-height: 100px;
+  transition: max-height 0.5s ease, opacity 0.5s ease;
+  position: relative;
+}
+
+.toggleHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  cursor: pointer;
+}
+
+.captionCardContent {
+  padding-top: 0px;
+  padding-bottom: 15px;
+  padding-left: 0px;
+  padding-right: 0px;
+  max-height: 0px;
+  overflow: hidden;
+  opacity: 0;
+  transition: max-height 0.5s ease, opacity 0.5s ease;
+}
+
+.iconMoreContentAnimation {
+  display: flex;
+  align-items: center;
+  cursor: pointer;
+  width: 50px;
+}
+
+.icon-top {
+  height: 1px;
+  background-color: #000000;
+  width: 24px;
+  position: absolute;
+}
+
+.icon-bottom {
+  height: 1px;
+  background-color: #000000;
+  width: 24px;
+  transform: rotate(90deg);
+  transition: all 0.2s ease-in-out;
+  position: absolute;
+}
+
+.sectionContentComponentCard[data-is-open="true"] .icon-bottom {
+  transform: rotate(0deg);
+  transition: all 0.2s ease-in-out;
+}
+
+.sectionContentComponentCard[data-is-open="true"] .captionCardContent {
+  max-height: 500px; /* Ajustar al contenido */
+  opacity: 1;
+  transition: max-height 0.5s ease, opacity 0.5s ease;
+}
+
+.content-image-responsive {
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
+  align-items: flex-start;
+  flex-wrap: nowrap;
+  gap: 15px;
+}
+
+@media (min-width: 1024px) {
+  .content-image-responsive { 
+    display: flex;
+    flex-direction: row;
+    justify-content: flex-start;
+    align-items: flex-start;
+    flex-wrap: nowrap;
+    gap: 15px;
+  }
+}

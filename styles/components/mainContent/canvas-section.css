@@ -1,0 +1,56 @@
+/* Estilos base para la estructura */
+#canvas-section {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    justify-content: flex-start;
+    width: 100%;
+    margin: 0 auto;
+}
+
+.dg.main {
+  display: block;
+  position: absolute;
+  top: 0;
+}
+
+  #canvas-container {
+    position: relative;
+    width: 100%;
+    max-width: 1200px; /* Ancho máximo para pantallas grandes */
+    min-height: 300px; /* Altura mínima */
+    aspect-ratio: 16/9; /* Mantiene la proporción de 16:9 para el canvas */
+    background-color: #e0e0e0; /* Color de fondo mientras carga el canvas */
+    border-radius: 12px;
+    overflow: hidden; /* Evita desbordamiento en caso de escala */
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1); /* Sombra sutil */
+  }
+  
+  #terrain-canvas {
+    display: block;
+    width: 100%;
+    height: 100%;
+    object-fit: contain; /* Asegura que el contenido se ajuste bien al canvas */
+    background-color: transparent; /* Para que se vea limpio sin fondo */
+  }
+  
+  /* Media queries para adaptabilidad */
+  @media (max-width: 1200px) {
+    #canvas-container {
+      max-width: 1000px;
+    }
+  }
+  
+  @media (max-width: 768px) {
+    #canvas-container {
+      max-width: 700px;
+    }
+  }
+  
+  @media (max-width: 480px) {
+    #canvas-container {
+      max-width: 100%; /* En móviles, ocupa el 100% del ancho disponible */
+      aspect-ratio: 4/3; /* Cambia la proporción a 4:3 en pantallas más pequeñas */
+    }
+  }
+  

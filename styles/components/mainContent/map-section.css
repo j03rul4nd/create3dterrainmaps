@@ -1,0 +1,53 @@
+section#map-section {
+    display: flex;
+    align-items: center;
+    flex-direction: column;
+    justify-content: flex-start;
+    width: 100%;
+}
+h2#map-title{
+    width: 100%;
+}
+
+#map-container {
+    margin-bottom: 0.65rem;
+    width: 100%;
+    box-shadow: 0 4px 6px #0000001a;
+    background-color: #fff;
+    display: flex;
+    border-radius: 5px;
+    flex-direction: column;
+    flex-wrap: nowrap;
+    align-items: center;
+    justify-content: center;
+    background: linear-gradient(#fff, #fff) padding-box, linear-gradient(90deg, #ed6e61, #6359e1) border-box;
+    border: 3px solid transparent;
+}
+
+
+#leaflet-map-container {
+    display: flex;
+    gap: .8rem;
+    flex-direction: column;
+    justify-content: flex-start;
+    align-items: center;
+    margin: 10px 5px;
+
+    width: 98%;
+    height: 400px; /* Asegúrate de tener un tamaño visible */
+    border-radius: 5px;
+}
+
+button#capture-terrain-btn {
+    box-shadow: 0 4px 6px #0000001a;
+    background-color: #fff;
+    display: flex;
+    border-radius: 5px;
+    flex-direction: column;
+    flex-wrap: nowrap;
+    align-items: center;
+    justify-content: center;
+    background: linear-gradient(#fff, #fff) padding-box, linear-gradient(90deg, #ed6e61, #6359e1) border-box;
+    border: 3px solid transparent;
+    cursor: pointer;
+}

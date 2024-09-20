@@ -1,0 +1,11 @@
+@import url("./styles/font.css");
+@import url("./styles/ui.css");
+
+@import url("./styles/components/header.css");
+@import url("./styles/components/mainContent.css");
+@import url("./styles/components/footer.css");
+
+@import url("./styles/components/mainContent/map-section.css");
+@import url("./styles/components/mainContent/canvas-section.css");
+@import url("./styles/components/mainContent/controls-section.css");
+@import url("./styles/components/mainContent/image-section.css");

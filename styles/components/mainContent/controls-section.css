@@ -1,0 +1,25 @@
+button#export-image-btn,
+button#export-3d-btn {
+    box-shadow: 0 4px 6px #0000001a;
+    background-color: #fff;
+    display: flex;
+    border-radius: 5px;
+    flex-direction: column;
+    flex-wrap: nowrap;
+    align-items: center;
+    justify-content: center;
+    background: linear-gradient(#fff, #fff) padding-box, linear-gradient(90deg, #ed6e61, #6359e1) border-box;
+    border: 3px solid transparent;
+    cursor: pointer;
+}
+
+#controls-group {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-around;
+    align-content: flex-start;
+    flex-direction: column;
+    flex-wrap: nowrap;
+    width: 200px;
+    gap: 5px;
+}
