@@ -67,6 +67,7 @@ An advanced web tool to create, visualize, and export custom 3D terrain maps in 
 
   - **Export Image**: Save the adjusted terrain image as a PNG file.
   - **Export 3D Model**: Download the 3D terrain model in GLTF format.
+![export terrain mountain](./public/export_terrain_3d.mp4)
 
 ## Contributing
 
