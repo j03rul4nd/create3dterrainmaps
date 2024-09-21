@@ -5,6 +5,7 @@ header {
     justify-content: flex-start;
     flex-wrap: nowrap;
     width: 100%;
+    max-width: 1000px;
 }
 
 header h1 {

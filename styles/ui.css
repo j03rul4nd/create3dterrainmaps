@@ -61,6 +61,8 @@ p {
 section, article {
     opacity: 0;
     transition: opacity 1s ease-in-out;
+    width: 100%;
+    max-width: 1000px;
 }
 
 section.visible, article.visible {
