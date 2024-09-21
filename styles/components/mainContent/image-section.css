@@ -10,6 +10,10 @@
     background-color: #fff; /* Fondo blanco */
   }
   
+  .responsive-image-section-options {
+      width: 100%;
+  }
+
   #content-terrain-image {
     position: relative;
     overflow: hidden;
