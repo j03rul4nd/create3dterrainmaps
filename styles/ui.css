@@ -71,4 +71,8 @@ section.visible, article.visible {
   
 .btn-stnd.contractedItem{
     transform: scale(0.95);
+    
+}
+.btn-stnd{
+    color: black;
 }
