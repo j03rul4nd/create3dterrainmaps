@@ -29,170 +29,239 @@ export class engine {
         this.listennersEditImage();
 
         // Se usa un arrow function para mantener el contexto de "this"
-        document.getElementById("generate-terrain-btn").addEventListener("click", () => {
-            this.transforImgageTo3D(); // Llama a la función con el contexto correcto
+        const generateTerrainBtn = document.getElementById("generate-terrain-btn");
+            generateTerrainBtn.addEventListener("click", async () => {
+            generateTerrainBtn.textContent = 'Loading...';
+            generateTerrainBtn.disabled = true;
+
+            try {
+                await this.transforImgageTo3D();
+                generateTerrainBtn.textContent = 'Success!';
+            } catch (error) {
+                console.error(error);
+                generateTerrainBtn.textContent = 'Error!';
+            }
+
+            setTimeout(() => {
+                generateTerrainBtn.textContent = 'Generate 3D Terrain';
+                generateTerrainBtn.disabled = false;
+            }, 2000);
         });
+
 
           // Listener para exportar la imagen
-          document.getElementById("export-image-btn").addEventListener("click", () => {
-            this.exportImage();
-        });
+          const exportImageBtn = document.getElementById("export-image-btn");
+          exportImageBtn.addEventListener("click", async () => {
+              exportImageBtn.textContent = 'Loading...';
+              exportImageBtn.disabled = true;
+  
+              try {
+                  await this.exportImage();
+                  exportImageBtn.textContent = 'Success!';
+              } catch (error) {
+                  console.error(error);
+                  exportImageBtn.textContent = 'Error!';
+              }
+  
+              setTimeout(() => {
+                  exportImageBtn.textContent = 'Export Image';
+                  exportImageBtn.disabled = false;
+              }, 2000);
+          });
 
         // Listener para exportar el modelo 3D
-        document.getElementById("export-3d-btn").addEventListener("click", () => {
-            this.export3DModel();
+        const export3DBtn = document.getElementById("export-3d-btn");
+        export3DBtn.addEventListener("click", async () => {
+            export3DBtn.textContent = 'Loading...';
+            export3DBtn.disabled = true;
+
+            try {
+                await this.export3DModel();
+                export3DBtn.textContent = 'Success!';
+            } catch (error) {
+                console.error(error);
+                export3DBtn.textContent = 'Error!';
+            }
+
+            setTimeout(() => {
+                export3DBtn.textContent = 'Export 3D Model';
+                export3DBtn.disabled = false;
+            }, 2000);
         });
 
     }
 
     // Función para exportar la imagen como PNG
     exportImage() {
-        const link = document.createElement('a');
-        const canvas = document.getElementById('edited-canvas'); // Canvas con la imagen editada
-        const imageData = canvas.toDataURL('image/png'); // Convertir a base64
+        return new Promise((resolve, reject) => {
+            try {
+                const link = document.createElement('a');
+                const canvas = document.getElementById('edited-canvas');
+                const imageData = canvas.toDataURL('image/png');
 
-        link.href = imageData;
-        link.download = 'terrain-image.png'; // Nombre del archivo
-        link.click();
+                link.href = imageData;
+                link.download = 'terrain-image.png';
+                link.click();
+                resolve();
+            } catch (error) {
+                console.error(error);
+                reject(error);
+            }
+        });
     }
 
     // Función para exportar el modelo 3D como GLTF
     // Función actualizada para exportar el modelo 3D como GLTF
     export3DModel() {
-        const exporter = new GLTFExporter();
-
-        // Obtener la malla del terreno
-        const terrainMesh = this.scene.getObjectByName('terrainMesh');
-
-        if (!terrainMesh) {
-            console.error('No se encontró la malla del terreno para exportar.');
-            return;
-        }
-
-        // Clonar la geometría y el material para no afectar los originales
-        const geometry = terrainMesh.geometry.clone();
-        const originalMaterial = terrainMesh.material;
-
-        // Obtener los atributos necesarios
-        const positionAttribute = geometry.attributes.position;
-        const uvAttribute = geometry.attributes.uv;
-
-        // Obtener los uniformes del material original
-        const displacementTexture = originalMaterial.uniforms.uDisplacementTexture.value;
-        const displacementScale = originalMaterial.uniforms.uDisplacementScale.value;
-
-        // Asegurarse de que la textura de desplazamiento esté cargada
-        if (!displacementTexture.image) {
-            console.error('La textura de desplazamiento aún no está cargada.');
-            return;
-        }
-
-        // Crear un canvas para extraer los datos de la textura de desplazamiento
-        const displacementCanvas = document.createElement('canvas');
-        displacementCanvas.width = displacementTexture.image.width;
-        displacementCanvas.height = displacementTexture.image.height;
-        const displacementContext = displacementCanvas.getContext('2d');
-        displacementContext.drawImage(displacementTexture.image, 0, 0);
-        const displacementImageData = displacementContext.getImageData(0, 0, displacementCanvas.width, displacementCanvas.height).data;
-
-        // Aplicar el desplazamiento a cada vértice con validaciones
-        for (let i = 0; i < positionAttribute.count; i++) {
-            // Obtener la posición y UV del vértice
-            let x = positionAttribute.getX(i);
-            let y = positionAttribute.getY(i);
-            let z = positionAttribute.getZ(i);
-            let u = uvAttribute.getX(i);
-            let v = uvAttribute.getY(i);
-
-            // Asegurarse de que u y v están en el rango [0,1]
-            u = THREE.MathUtils.clamp(u, 0, 1);
-            v = THREE.MathUtils.clamp(v, 0, 1);
-
-            // Calcular la posición en píxeles en la textura
-            let px = Math.floor(u * (displacementCanvas.width - 1));
-            let py = Math.floor(v * (displacementCanvas.height - 1));
-
-            // Invertir el eje Y de la textura si es necesario
-            let flippedPy = displacementCanvas.height - py - 1;
-
-            // Asegurarse de que px y flippedPy están dentro de los límites
-            px = THREE.MathUtils.clamp(px, 0, displacementCanvas.width - 1);
-            flippedPy = THREE.MathUtils.clamp(flippedPy, 0, displacementCanvas.height - 1);
-
-            // Obtener el índice en el array de datos
-            const index = (flippedPy * displacementCanvas.width + px) * 4;
-
-            // Verificar que el índice está dentro de los límites del array
-            if (index < 0 || index >= displacementImageData.length) {
-                console.warn(`Índice fuera de rango en la textura de desplazamiento: ${index}`);
-                continue; // Saltar este vértice si el índice es inválido
+        return new Promise((resolve, reject) => {
+            try {
+                const exporter = new GLTFExporter();
+    
+                // Obtener la malla del terreno
+                const terrainMesh = this.scene.getObjectByName('terrainMesh');
+    
+                if (!terrainMesh) {
+                    console.error('No se encontró la malla del terreno para exportar.');
+                    reject('No se encontró la malla del terreno para exportar.');
+                    return;
+                }
+    
+                // Clonar la geometría y el material para no afectar los originales
+                const geometry = terrainMesh.geometry.clone();
+                const originalMaterial = terrainMesh.material;
+    
+                // Obtener los atributos necesarios
+                const positionAttribute = geometry.attributes.position;
+                const uvAttribute = geometry.attributes.uv;
+    
+                // Obtener los uniformes del material original
+                const displacementTexture = originalMaterial.uniforms.uDisplacementTexture.value;
+                const displacementScale = originalMaterial.uniforms.uDisplacementScale.value;
+    
+                // Asegurarse de que la textura de desplazamiento esté cargada
+                if (!displacementTexture.image) {
+                    console.error('La textura de desplazamiento aún no está cargada.');
+                    reject('La textura de desplazamiento aún no está cargada.');
+                    return;
+                }
+    
+                // Crear un canvas para extraer los datos de la textura de desplazamiento
+                const displacementCanvas = document.createElement('canvas');
+                displacementCanvas.width = displacementTexture.image.width;
+                displacementCanvas.height = displacementTexture.image.height;
+                const displacementContext = displacementCanvas.getContext('2d');
+                displacementContext.drawImage(displacementTexture.image, 0, 0);
+                const displacementImageData = displacementContext.getImageData(0, 0, displacementCanvas.width, displacementCanvas.height).data;
+    
+                // Aplicar el desplazamiento a cada vértice con validaciones
+                for (let i = 0; i < positionAttribute.count; i++) {
+                    // Obtener la posición y UV del vértice
+                    let x = positionAttribute.getX(i);
+                    let y = positionAttribute.getY(i);
+                    let z = positionAttribute.getZ(i);
+                    let u = uvAttribute.getX(i);
+                    let v = uvAttribute.getY(i);
+    
+                    // Asegurarse de que u y v están en el rango [0,1]
+                    u = THREE.MathUtils.clamp(u, 0, 1);
+                    v = THREE.MathUtils.clamp(v, 0, 1);
+    
+                    // Calcular la posición en píxeles en la textura
+                    let px = Math.floor(u * (displacementCanvas.width - 1));
+                    let py = Math.floor(v * (displacementCanvas.height - 1));
+    
+                    // Invertir el eje Y de la textura si es necesario
+                    let flippedPy = displacementCanvas.height - py - 1;
+    
+                    // Asegurarse de que px y flippedPy están dentro de los límites
+                    px = THREE.MathUtils.clamp(px, 0, displacementCanvas.width - 1);
+                    flippedPy = THREE.MathUtils.clamp(flippedPy, 0, displacementCanvas.height - 1);
+    
+                    // Obtener el índice en el array de datos
+                    const index = (flippedPy * displacementCanvas.width + px) * 4;
+    
+                    // Verificar que el índice está dentro de los límites del array
+                    if (index < 0 || index >= displacementImageData.length) {
+                        console.warn(`Índice fuera de rango en la textura de desplazamiento: ${index}`);
+                        continue; // Saltar este vértice si el índice es inválido
+                    }
+    
+                    const r = displacementImageData[index] / 255; // Normalizar entre 0 y 1
+    
+                    // Verificar si r es un número válido
+                    if (isNaN(r) || !isFinite(r)) {
+                        console.warn(`Valor de desplazamiento inválido en el vértice ${i}.`);
+                        continue; // Saltar este vértice si r es inválido
+                    }
+    
+                    // Calcular el desplazamiento
+                    const displacement = r * displacementScale;
+    
+                    // Aplicar el desplazamiento al vértice en el eje Z (debido a la rotación del plano)
+                    z += displacement;
+    
+                    // Verificar que x, y, z son números válidos
+                    if (isNaN(x) || isNaN(y) || isNaN(z)) {
+                        console.warn(`Coordenadas inválidas en el vértice ${i}.`);
+                        continue; // Saltar este vértice si alguna coordenada es inválida
+                    }
+    
+                    // Actualizar la posición del vértice
+                    positionAttribute.setXYZ(i, x, y, z);
+                }
+    
+                // Marcar el atributo de posición para actualización
+                positionAttribute.needsUpdate = true;
+                geometry.computeVertexNormals(); // Recalcular las normales para iluminación correcta
+                geometry.computeBoundingBox(); // Calcular la caja delimitadora
+    
+                // Establecer min y max para el accesor de posición
+                const boundingBox = geometry.boundingBox;
+                const min = boundingBox.min;
+                const max = boundingBox.max;
+    
+                positionAttribute.min = [min.x, min.y, min.z];
+                positionAttribute.max = [max.x, max.y, max.z];
+    
+                // Crear un material estándar con la textura de color
+                const exportMaterial = new THREE.MeshStandardMaterial({
+                    map: originalMaterial.uniforms.uColorTexture.value,
+                    side: THREE.DoubleSide,
+                });
+    
+                // Crear una nueva malla para la exportación
+                const exportMesh = new THREE.Mesh(geometry, exportMaterial);
+    
+                // Exportar la malla
+                exporter.parse(
+                    exportMesh,
+                    (result) => {
+                        const output = JSON.stringify(result, null, 2);
+                        const blob = new Blob([output], { type: 'application/json' });
+                        const url = URL.createObjectURL(blob);
+    
+                        const link = document.createElement('a');
+                        link.href = url;
+                        link.download = '3d-terrain-model.gltf';
+                        link.click();
+    
+                        // Liberar el objeto URL
+                        URL.revokeObjectURL(url);
+                        resolve();
+                    },
+                    (error) => {
+                        console.error('Error al exportar el modelo 3D:', error);
+                        reject(error);
+                    },
+                    { binary: false }
+                );
+            } catch (error) {
+                console.error(error);
+                reject(error);
             }
-
-            const r = displacementImageData[index] / 255; // Normalizar entre 0 y 1
-
-            // Verificar si r es un número válido
-            if (isNaN(r) || !isFinite(r)) {
-                console.warn(`Valor de desplazamiento inválido en el vértice ${i}.`);
-                continue; // Saltar este vértice si r es inválido
-            }
-
-            // Calcular el desplazamiento
-            const displacement = r * displacementScale;
-
-            // Aplicar el desplazamiento al vértice en el eje Z (debido a la rotación del plano)
-            z += displacement;
-
-            // Verificar que x, y, z son números válidos
-            if (isNaN(x) || isNaN(y) || isNaN(z)) {
-                console.warn(`Coordenadas inválidas en el vértice ${i}.`);
-                continue; // Saltar este vértice si alguna coordenada es inválida
-            }
-
-            // Actualizar la posición del vértice
-            positionAttribute.setXYZ(i, x, y, z);
-        }
-
-        // Marcar el atributo de posición para actualización
-        positionAttribute.needsUpdate = true;
-        geometry.computeVertexNormals(); // Recalcular las normales para iluminación correcta
-        geometry.computeBoundingBox(); // Calcular la caja delimitadora
-
-        // Establecer min y max para el accesor de posición
-        const boundingBox = geometry.boundingBox;
-        const min = boundingBox.min;
-        const max = boundingBox.max;
-
-        positionAttribute.min = [min.x, min.y, min.z];
-        positionAttribute.max = [max.x, max.y, max.z];
-
-        // Crear un material estándar con la textura de color
-        const exportMaterial = new THREE.MeshStandardMaterial({
-            map: originalMaterial.uniforms.uColorTexture.value,
-            side: THREE.DoubleSide,
         });
-
-        // Crear una nueva malla para la exportación
-        const exportMesh = new THREE.Mesh(geometry, exportMaterial);
-
-        // Exportar la malla
-        exporter.parse(
-            exportMesh,
-            (result) => {
-                const output = JSON.stringify(result, null, 2);
-                const blob = new Blob([output], { type: 'application/json' });
-                const url = URL.createObjectURL(blob);
-
-                const link = document.createElement('a');
-                link.href = url;
-                link.download = '3d-terrain-model.gltf';
-                link.click();
-
-                // Liberar el objeto URL
-                URL.revokeObjectURL(url);
-            },
-            { binary: false }
-        );
     }
+    
     
     
     
@@ -319,18 +388,9 @@ export class engine {
     }
     
 
-    transforImgageTo3D() {
-        const image = document.getElementById('terrain-image').src; // Obtiene la URL de la imagen
-        this.renderTerrain3D(image); // Renderiza el terreno en 3D usando la imagen
-   
-        //const canvas = document.getElementById('edited-canvas');
-        //const imageDataUrl = canvas.toDataURL('image/png'); // Obtener la imagen editada
-    // this.renderTerrain3D(imageDataUrl); // Renderiza el terreno en 3D usando la imagen editada
-
-       // const canvas = document.getElementById('edited-canvas');
-       // const imageDataUrl = canvas.toDataURL('image/png'); // Obtener la imagen editada
-       // this.renderTerrain3D(imageDataUrl); // Renderiza el terreno en 3D usando la imagen editada
-    
+    async transforImgageTo3D() {
+        const image = document.getElementById('terrain-image').src;
+        await this.renderTerrain3D(image);
     }
     
     
@@ -455,7 +515,7 @@ export class engine {
     
     
 
-    init3dScene() {
+    async init3dScene() {
         this.scene = new THREE.Scene(); // Crea la escena 3D
         this.camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000); // Crea la cámara 3D
         this.camera.position.set(0, 7, 15); // Posiciona la cámara
@@ -515,7 +575,7 @@ export class engine {
         });
 
         gui.addColor(this.params, 'highColor').onChange(value => {
-            this.transforImgageTo3D();
+             this.transforImgageTo3D();
         });
 
         gui.add(this.params, 'rotationAnimation').name('Animar Rotación');
@@ -537,15 +597,30 @@ export class engine {
 
         animate(); // Inicia la animación
 
-        this.transforImgageTo3D();
+        await this.transforImgageTo3D();
     }
 
     // Función para renderizar el terreno en 3D a partir de la imagen
-    renderTerrain3D(imageUrl) {
+    async  renderTerrain3D(imageUrl) {
         const textureLoader = new THREE.TextureLoader();
-        let displacementTexture = textureLoader.load(imageUrl);
-        let colorTexture = textureLoader.load(imageUrl);
-    
+
+        const displacementTexture = await new Promise((resolve, reject) => {
+            textureLoader.load(
+                imageUrl,
+                texture => resolve(texture),
+                undefined,
+                err => reject(err)
+            );
+        });
+
+        const colorTexture = await new Promise((resolve, reject) => {
+            textureLoader.load(
+                imageUrl,
+                texture => resolve(texture),
+                undefined,
+                err => reject(err)
+            );
+        });
         // Crear la geometría del plano
         const planeGeometry = new THREE.PlaneGeometry(10, 10, 256, 256);
     

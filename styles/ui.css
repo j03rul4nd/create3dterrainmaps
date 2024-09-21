@@ -76,3 +76,7 @@ section.visible, article.visible {
 .btn-stnd{
     color: black;
 }
+.btn-loading {
+    cursor: wait;
+    /* Puedes añadir más estilos o animaciones */
+}
