@@ -13,7 +13,7 @@ An advanced web tool to create, visualize, and export custom 3D terrain maps in 
 ## Demo
 ![terrain mountain](./public/terrain_mountain.gif)
 
-[Live Demo](https://your-demo-url.com)
+[Live Demo](https://create3dterrainmaps.vercel.app/)
 
 ## Installation
 
