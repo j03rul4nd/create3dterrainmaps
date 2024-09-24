@@ -81,7 +81,7 @@
   margin-bottom: 1rem;
   margin-top: 1rem;
   overflow: hidden;
-  max-height: 100px;
+  max-height: 186px;
   transition: max-height 0.5s ease, opacity 0.5s ease;
   position: relative;
 }
@@ -127,13 +127,27 @@
   position: absolute;
 }
 
+.setting-option-image label {
+  min-width: 100px;
+  width: fit-content;
+  display: block;
+}
+
+.setting-option-image {
+  display: flex;
+  flex-direction: row;
+  justify-content: flex-start;
+  width: 100%;
+  align-items: center;
+}
+
 .sectionContentComponentCard[data-is-open="true"] .icon-bottom {
   transform: rotate(0deg);
   transition: all 0.2s ease-in-out;
 }
 
 .sectionContentComponentCard[data-is-open="true"] .captionCardContent {
-  max-height: 500px; /* Ajustar al contenido */
+  max-height: 700px; /* Ajustar al contenido */
   opacity: 1;
   transition: max-height 0.5s ease, opacity 0.5s ease;
 }
