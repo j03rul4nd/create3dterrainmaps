@@ -9,6 +9,7 @@ export class engine {
     scene = null; // Escena 3D
     camera = null; // Cámara 3D
     renderer = null; // Renderizador 3D
+    controls = null; // controls scene threejs
 
     params = {
         wireframe: false,
@@ -88,6 +89,51 @@ export class engine {
                 export3DBtn.disabled = false;
             }, 2000);
         });
+
+        // Listener para guardar la posición de la cámara
+        const btnCameraSave = document.getElementById("btnCameraSave");
+        btnCameraSave.addEventListener("click", () => {
+            const span = btnCameraSave.querySelector("span");
+            span.textContent = 'Saving...';
+            btnCameraSave.disabled = true;
+
+            try {
+                this.controls.saveState(); // Guarda el estado de la cámara
+                console.log("Posición de la cámara guardada.");
+                span.textContent = 'Saved!';
+            } catch (error) {
+                console.error('Error al guardar la posición de la cámara:', error);
+                span.textContent = 'Error!';
+            }
+
+            setTimeout(() => {
+                span.textContent = 'Save';
+                btnCameraSave.disabled = false;
+            }, 2000);
+        });
+
+        // Listener para restablecer la posición de la cámara
+        const btnCameraReset = document.getElementById("btnCameraReset");
+        btnCameraReset.addEventListener("click", () => {
+            const span = btnCameraReset.querySelector("span");
+            span.textContent = 'Resetting...';
+            btnCameraReset.disabled = true;
+
+            try {
+                this.controls.reset(); // Restablece la posición de la cámara
+                console.log("Posición de la cámara restablecida.");
+                span.textContent = 'Reset!';
+            } catch (error) {
+                console.error('Error al restablecer la posición de la cámara:', error);
+                span.textContent = 'Error!';
+            }
+
+            setTimeout(() => {
+                span.textContent = 'Reset';
+                btnCameraReset.disabled = false;
+            }, 2000);
+        });
+
 
     }
 
@@ -531,7 +577,7 @@ export class engine {
         this.renderer.shadowMap.enabled = true; // Habilita sombras
         this.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 
-        const controls = new OrbitControls(this.camera, this.renderer.domElement); // Configura los controles
+        this.controls = new OrbitControls(this.camera, this.renderer.domElement); // Configura los controles
 
         // Añadir luces a la escena
         const ambientLight = new THREE.AmbientLight(0xffffff, 0.3); // Luz ambiental
@@ -583,7 +629,7 @@ export class engine {
         // Animar la escena
         const animate = () => {
             requestAnimationFrame(animate);
-            controls.update();
+            this.controls.update();
 
             if (this.params.rotationAnimation) {
                 const terrainMesh = this.scene.getObjectByName('terrainMesh');
