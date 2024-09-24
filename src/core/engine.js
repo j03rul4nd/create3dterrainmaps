@@ -10,6 +10,7 @@ export class engine {
     camera = null; // Cámara 3D
     renderer = null; // Renderizador 3D
     controls = null; // controls scene threejs
+    stats = null;
 
     params = {
         wireframe: false,
@@ -594,6 +595,19 @@ export class engine {
         pointLight.castShadow = true; // Permitir que la luz genere sombras
         this.scene.add(pointLight);
 
+        // Inicializar Stats
+        this.stats = new Stats();
+        this.stats.showPanel(0); // 0: FPS, 1: ms, 2: mb, 3+: personalizados
+
+        // Estilizar el panel para posicionarlo en la esquina superior derecha
+        this.stats.domElement.style.position = 'absolute';
+        this.stats.domElement.style.top = '0';
+        this.stats.domElement.style.right = '0';
+        this.stats.domElement.style.left = 'auto';
+
+        // Agregar el panel al contenedor
+        const container = document.getElementById('canvas-container');
+        container.appendChild(this.stats.domElement);
         
 
         // Configurar la GUI
@@ -629,6 +643,8 @@ export class engine {
         // Animar la escena
         const animate = () => {
             requestAnimationFrame(animate);
+
+            this.stats.begin(); // Inicia el monitoreo
             this.controls.update();
 
             if (this.params.rotationAnimation) {
@@ -639,6 +655,8 @@ export class engine {
             }
 
             this.renderer.render(this.scene, this.camera);
+
+            this.stats.end(); // Termina el monitoreo
         };
 
         animate(); // Inicia la animación
