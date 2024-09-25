@@ -38,7 +38,7 @@
     display: flex;
     position: absolute;
     bottom: 0;
-    right: 0;
+    left: 0;
     flex-direction: row;
     justify-content: flex-start;
     align-items: center;
@@ -52,7 +52,14 @@
   width: 18px;
   height: 18px;
 }
-
+#viewHelper{
+  position: absolute;
+  background-color: rgba(255, 0, 0, 0.32);
+  right: 0;
+  bottom: 0;
+  width: 128px;
+  height: 128px;
+}
 .icon-options-camera-canvas {
   height: 100%;
   display: flex;

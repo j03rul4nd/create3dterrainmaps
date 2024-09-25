@@ -1,7 +1,7 @@
 import * as THREE from "three";
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls';
 import { GLTFExporter } from 'three/examples/jsm/exporters/GLTFExporter.js';
-
+import { ViewHelper } from 'three/examples/jsm/helpers/ViewHelper.js';
 
 export class engine {
     map = null; // Variable para almacenar el mapa
@@ -11,6 +11,9 @@ export class engine {
     renderer = null; // Renderizador 3D
     controls = null; // controls scene threejs
     stats = null;
+    viewHelper = null;
+    clock = null;
+    axesHelper = null;
 
     params = {
         wireframe: false,
@@ -18,7 +21,8 @@ export class engine {
         lowColor: "#ff3333", // Color rojo para baja elevación
         midColor: "#80b3ff", // Color azul para elevación media
         highColor: "#80ff80", // Color verde para alta elevación
-        rotationAnimation: false 
+        rotationAnimation: false,
+        showViewHelper: true, 
     };
 
     constructor(options) {
@@ -595,6 +599,28 @@ export class engine {
         pointLight.castShadow = true; // Permitir que la luz genere sombras
         this.scene.add(pointLight);
 
+
+        this.axesHelper = new THREE.AxesHelper(20);
+        this.axesHelper.visible = false;  // Inicialmente no visible
+        this.scene.add(this.axesHelper);
+
+        this.clock = new THREE.Clock();
+        // Inicializar el ViewHelper
+        //this.viewHelper = new ViewHelper(this.camera, this.renderer.domElement );
+        //this.scene.add(this.viewHelper); // Asegúrate de agregarlo a la escena si es necesario.
+
+        this.controls.saveState();
+        // this.viewHelper.controls = this.controls;
+        // this.viewHelper.controls.center = this.controls.target;
+        // this.viewHelper.visible = this.params.showViewHelper;
+        // const viewHelperElement =  document.createElement('div');
+        // viewHelperElement.id = 'viewHelper';
+        //document.getElementById("canvas-container").appendChild( viewHelperElement );
+
+        //viewHelperElement.addEventListener('pointerup', (event) => this.viewHelper.handleClick(event));
+
+
+
         // Inicializar Stats
         this.stats = new Stats();
         this.stats.showPanel(0); // 0: FPS, 1: ms, 2: mb, 3+: personalizados
@@ -640,24 +666,40 @@ export class engine {
 
         gui.add(this.params, 'rotationAnimation').name('Animar Rotación');
 
+        gui.add(this.axesHelper, 'visible').name('Mostrar Ejes');
+
+        // gui.add(this.params, 'showViewHelper').name('Mostrar ViewHelper').onChange(value => {
+        //     this.viewHelper.visible = value; // Cambiar visibilidad del ViewHelper
+        // });
+
         // Animar la escena
         const animate = () => {
             requestAnimationFrame(animate);
-
-            this.stats.begin(); // Inicia el monitoreo
+        
+            this.stats.begin(); 
             this.controls.update();
-
+        
+            const delta = this.clock.getDelta();
+            
+            // Actualiza y renderiza el ViewHelper
+            // if (this.params.showViewHelper && this.viewHelper.animating) {
+            //     this.viewHelper.update(delta); // Actualiza el ViewHelper
+            //     this.viewHelper.render(this.renderer); // Renderiza el ViewHelper
+            // }
+        
+            // Animación de rotación del terreno (si está habilitada)
             if (this.params.rotationAnimation) {
                 const terrainMesh = this.scene.getObjectByName('terrainMesh');
                 if (terrainMesh) {
-                    terrainMesh.rotation.z += 0.01; // Ajusta la velocidad de rotación según sea necesario
+                    terrainMesh.rotation.z += 0.01; // Velocidad de rotación
                 }
             }
-
+        
+            this.renderer.clear();
             this.renderer.render(this.scene, this.camera);
-
-            this.stats.end(); // Termina el monitoreo
+            this.stats.end(); 
         };
+        
 
         animate(); // Inicia la animación
 
