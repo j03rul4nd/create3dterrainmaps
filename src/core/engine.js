@@ -3,9 +3,8 @@ import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls';
 import { GLTFExporter } from 'three/examples/jsm/exporters/GLTFExporter.js';
 import { ViewHelper } from 'three/examples/jsm/helpers/ViewHelper.js';
 
-export class engine {
-    map = null; // Variable para almacenar el mapa
-    originalImageData = "/mountain.png"; // Variable para almacenar la imagen original
+class Manager3d {
+
     scene = null; // Escena 3D
     camera = null; // Cámara 3D
     renderer = null; // Renderizador 3D
@@ -25,75 +24,226 @@ export class engine {
         showViewHelper: true, 
     };
 
-    constructor(options) {
-        // Aquí se pueden inicializar opciones si es necesario
+    constructor() {
+
+    };
+
+    // Función para renderizar el terreno en 3D a partir de la imagen
+    async  renderTerrain3D(imageUrl) {
+        const textureLoader = new THREE.TextureLoader();
+
+        const displacementTexture = await new Promise((resolve, reject) => {
+            textureLoader.load(
+                imageUrl,
+                texture => resolve(texture),
+                undefined,
+                err => reject(err)
+            );
+        });
+
+        const colorTexture = await new Promise((resolve, reject) => {
+            textureLoader.load(
+                imageUrl,
+                texture => resolve(texture),
+                undefined,
+                err => reject(err)
+            );
+        });
+        // Crear la geometría del plano
+        const planeGeometry = new THREE.PlaneGeometry(10, 10, 256, 256);
+    
+        // Crear el material con el desplazamiento y la textura de color
+        const material = new THREE.ShaderMaterial({
+            vertexShader: `
+                varying vec2 vUv;
+                varying float vDisplacement;
+    
+                uniform sampler2D uDisplacementTexture;
+                uniform float uDisplacementScale;
+    
+                void main() {
+                    vUv = uv;
+    
+                    vec4 displacement = texture2D(uDisplacementTexture, uv);
+                    vDisplacement = displacement.r;
+    
+                    vec3 newPosition = position + normal * vDisplacement * uDisplacementScale;
+    
+                    gl_Position = projectionMatrix * modelViewMatrix * vec4(newPosition, 1.0);
+                }
+            `,
+    
+            fragmentShader: `
+                varying vec2 vUv;
+                varying float vDisplacement;
+    
+                uniform sampler2D uColorTexture;
+                uniform vec3 uLowColor;
+                uniform vec3 uMidColor;
+                uniform vec3 uHighColor;
+                uniform float uColorIntensity;
+    
+                void main() {
+                    vec4 textureColor = texture2D(uColorTexture, vUv);
+    
+                    vec3 lowColor = uLowColor;
+                    vec3 midColor = uMidColor;
+                    vec3 highColor = uHighColor;
+    
+                    vec3 gradientColor;
+                    if (vDisplacement < 0.5) {
+                        gradientColor = mix(lowColor, midColor, smoothstep(0.0, 0.5, vDisplacement));
+                    } else {
+                        gradientColor = mix(midColor, highColor, smoothstep(0.5, 1.0, vDisplacement));
+                    }
+    
+                    vec3 blendedColor = mix(textureColor.rgb, gradientColor, uColorIntensity);
+    
+                    gl_FragColor = vec4(blendedColor, 1.0);
+                }
+            `,
+    
+            uniforms: {
+                uDisplacementTexture: { value: displacementTexture },
+                uColorTexture: { value: colorTexture },
+                uDisplacementScale: { value: this.params.displacementScale },
+                uLowColor: { value: new THREE.Color(this.params.lowColor) },
+                uMidColor: { value: new THREE.Color(this.params.midColor) },
+                uHighColor: { value: new THREE.Color(this.params.highColor) },
+                uColorIntensity: { value: 0.4 },
+            },
+    
+            side: THREE.DoubleSide,
+            wireframe: this.params.wireframe,
+        });
+    
+        // Eliminar la malla previa si existe
+        const existingMesh = this.scene.getObjectByName('terrainMesh');
+        if (existingMesh) {
+            this.scene.remove(existingMesh);
+        }
+    
+        // Crear la malla del terreno
+        const plane = new THREE.Mesh(planeGeometry, material);
+        plane.rotation.x = -Math.PI / 2;
+        plane.position.y = 2;
+        plane.receiveShadow = true;
+        plane.castShadow = true;
+        plane.name = 'terrainMesh';
+    
+        this.scene.add(plane);
     }
 
-    init() {
-        this.lazyLoading(); // Inicia el proceso de carga diferida
-        this.init3dScene(); // Inicializa la escena 3D
-        this.listennersEditImage();
+    async init3dScene() {
 
-        // Se usa un arrow function para mantener el contexto de "this"
-        const generateTerrainBtn = document.getElementById("generate-terrain-btn");
-            generateTerrainBtn.addEventListener("click", async () => {
-            generateTerrainBtn.textContent = 'Loading...';
-            generateTerrainBtn.disabled = true;
+        this.scene = new THREE.Scene(); // Crea la escena 3D
+        this.camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000); // Crea la cámara 3D
+        this.camera.position.set(0, 7, 15); // Posiciona la cámara
 
-            try {
-                await this.transforImgageTo3D();
-                generateTerrainBtn.textContent = 'Success!';
-            } catch (error) {
-                console.error(error);
-                generateTerrainBtn.textContent = 'Error!';
-            }
+        const canvas3D = document.getElementById('terrain-canvas'); // Obtiene el canvas para renderizado
 
-            setTimeout(() => {
-                generateTerrainBtn.textContent = 'Generate 3D Terrain';
-                generateTerrainBtn.disabled = false;
-            }, 2000);
+        this.renderer = new THREE.WebGLRenderer({
+            canvas: canvas3D,
+            antialias: true,
+            preserveDrawingBuffer: true,
         });
 
+        this.renderer.setSize(window.innerWidth, window.innerHeight); // Establece el tamaño del renderizador
+        this.renderer.shadowMap.enabled = true; // Habilita sombras
+        this.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 
-          // Listener para exportar la imagen
-          const exportImageBtn = document.getElementById("export-image-btn");
-          exportImageBtn.addEventListener("click", async () => {
-              exportImageBtn.textContent = 'Loading...';
-              exportImageBtn.disabled = true;
-  
-              try {
-                  await this.exportImage();
-                  exportImageBtn.textContent = 'Success!';
-              } catch (error) {
-                  console.error(error);
-                  exportImageBtn.textContent = 'Error!';
-              }
-  
-              setTimeout(() => {
-                  exportImageBtn.textContent = 'Export Image';
-                  exportImageBtn.disabled = false;
-              }, 2000);
-          });
+        this.controls = new OrbitControls(this.camera, this.renderer.domElement); // Configura los controles
+        this.controls.saveState();
 
-        // Listener para exportar el modelo 3D
-        const export3DBtn = document.getElementById("export-3d-btn");
-        export3DBtn.addEventListener("click", async () => {
-            export3DBtn.textContent = 'Loading...';
-            export3DBtn.disabled = true;
+        // Añadir luces a la escena
+        this.initlightsScene();
 
-            try {
-                await this.export3DModel();
-                export3DBtn.textContent = 'Success!';
-            } catch (error) {
-                console.error(error);
-                export3DBtn.textContent = 'Error!';
+        // Add axes helper in to scene:
+        this.initAxesHelper();
+
+        this.clock = new THREE.Clock();
+
+        // Inicializar el ViewHelper
+        // this.initViewHelper(): // aun en desarrollo
+
+        // Inicializar Stats
+        this.initStats();
+
+        // Configurar la GUI
+        this.initGUI();
+
+        // Animar la escena
+        const animate = () => {
+            requestAnimationFrame(animate);
+        
+            this.stats.begin(); 
+            this.controls.update();
+
+            // Actualiza y renderiza el ViewHelper
+            // this.updateViewHelper(); // aun en desarrollo 
+        
+            // Animación de rotación del terreno (si está habilitada)
+            this.updateParams();
+        
+            this.renderer.clear();
+            this.renderer.render(this.scene, this.camera);
+            this.stats.end(); 
+        };
+        
+
+        animate(); // Inicia la animación
+
+        await this.transforImgageTo3D();
+    }
+
+    updateParams(){
+        if (this.params.rotationAnimation) {
+            const terrainMesh = this.scene.getObjectByName('terrainMesh');
+            if (terrainMesh) {
+                terrainMesh.rotation.z += 0.01; // Velocidad de rotación
             }
+        }
+    }
 
-            setTimeout(() => {
-                export3DBtn.textContent = 'Export 3D Model';
-                export3DBtn.disabled = false;
-            }, 2000);
-        });
+    initStats(){
+        this.stats = new Stats();
+        this.stats.showPanel(0); // 0: FPS, 1: ms, 2: mb, 3+: personalizados
+
+        // Estilizar el panel para posicionarlo en la esquina superior derecha
+        this.stats.domElement.style.position = 'absolute';
+        this.stats.domElement.style.top = '0';
+        this.stats.domElement.style.right = '0';
+        this.stats.domElement.style.left = 'auto';
+
+        // Agregar el panel al contenedor
+        const container = document.getElementById('canvas-container');
+        container.appendChild(this.stats.domElement);
+    }
+
+    initAxesHelper(){
+        this.axesHelper = new THREE.AxesHelper(20);
+        this.axesHelper.visible = false;  // Inicialmente no visible
+        this.scene.add(this.axesHelper);
+    }
+
+    initlightsScene(){
+        // Añadir luces a la escena
+        const ambientLight = new THREE.AmbientLight(0xffffff, 0.3); // Luz ambiental
+        this.scene.add(ambientLight);
+
+        const directionalLight = new THREE.DirectionalLight(0xffffff, 1.0); // Luz direccional
+        directionalLight.position.set(5, 10, 7);
+        directionalLight.castShadow = true; // Permitir que la luz genere sombras
+        directionalLight.shadow.mapSize.set(2048, 2048); // Tamaño de las sombras
+        this.scene.add(directionalLight);
+
+        const pointLight = new THREE.PointLight(0xffffff, 0.5); // Luz puntual
+        pointLight.position.set(-5, 10, -5);
+        pointLight.castShadow = true; // Permitir que la luz genere sombras
+        this.scene.add(pointLight);
+    }
+
+    listeners(){
 
         // Listener para guardar la posición de la cámara
         const btnCameraSave = document.getElementById("btnCameraSave");
@@ -139,30 +289,50 @@ export class engine {
             }, 2000);
         });
 
-
     }
+    initGUI(){
+        // Configurar la GUI
+        const gui = new dat.GUI({ autoPlace: false });
+        const guiContainer = document.getElementById('canvas-container');
+        guiContainer.appendChild(gui.domElement);
 
-    // Función para exportar la imagen como PNG
-    exportImage() {
-        return new Promise((resolve, reject) => {
-            try {
-                const link = document.createElement('a');
-                const canvas = document.getElementById('edited-canvas');
-                const imageData = canvas.toDataURL('image/png');
-
-                link.href = imageData;
-                link.download = 'terrain-image.png';
-                link.click();
-                resolve();
-            } catch (error) {
-                console.error(error);
-                reject(error);
+        gui.add(this.params, 'wireframe').onChange(value => {
+            const terrainMesh = this.scene.getObjectByName('terrainMesh');
+            if (terrainMesh) {
+                terrainMesh.material.wireframe = value;
             }
         });
+
+        gui.add(this.params, 'displacementScale', 0.1, 10).onChange(value => {
+            this.transforImgageTo3D();
+        });
+
+        gui.addColor(this.params, 'lowColor').onChange(value => {
+            this.transforImgageTo3D();
+        });
+
+        gui.addColor(this.params, 'midColor').onChange(value => {
+            this.transforImgageTo3D();
+        });
+
+        gui.addColor(this.params, 'highColor').onChange(value => {
+             this.transforImgageTo3D();
+        });
+
+        gui.add(this.params, 'rotationAnimation').name('Animar Rotación');
+
+        gui.add(this.axesHelper, 'visible').name('Mostrar Ejes');
+
+        // gui.add(this.params, 'showViewHelper').name('Mostrar ViewHelper').onChange(value => {
+        //     this.viewHelper.visible = value; // Cambiar visibilidad del ViewHelper
+        // });
     }
 
-    // Función para exportar el modelo 3D como GLTF
-    // Función actualizada para exportar el modelo 3D como GLTF
+    async transforImgageTo3D() {
+        const image = document.getElementById('terrain-image').src;
+        await this.renderTerrain3D(image);
+    }
+
     export3DModel() {
         return new Promise((resolve, reject) => {
             try {
@@ -312,10 +482,135 @@ export class engine {
             }
         });
     }
-    
-    
-    
-    
+
+    // aun en desarrollo:
+    initViewHelper(){
+        // Inicializar el ViewHelper
+        this.viewHelper = new ViewHelper(this.camera, this.renderer.domElement );
+        this.scene.add(this.viewHelper); // Asegúrate de agregarlo a la escena si es necesario.
+
+
+        this.viewHelper.controls = this.controls;
+        this.viewHelper.controls.center = this.controls.target;
+        this.viewHelper.visible = this.params.showViewHelper;
+
+        const viewHelperElement =  document.createElement('div');
+        viewHelperElement.id = 'viewHelper';
+        document.getElementById("canvas-container").appendChild( viewHelperElement );
+
+        viewHelperElement.addEventListener('pointerup', (event) => this.viewHelper.handleClick(event));
+
+    }
+    updateViewHelper(){
+        const delta = this.clock.getDelta();
+        if (this.params.showViewHelper && this.viewHelper.animating) {
+            this.viewHelper.update(delta); // Actualiza el ViewHelper
+            this.viewHelper.render(this.renderer); // Renderiza el ViewHelper
+        }
+    }
+
+}
+
+export class engine {
+    map = null; // Variable para almacenar el mapa
+    originalImageData = "/mountain.png"; // Variable para almacenar la imagen original
+
+    constructor(options) {
+
+        this.manager3d = new Manager3d();
+        // Aquí se pueden inicializar opciones si es necesario
+    }
+
+    init() {
+        this.lazyLoading(); // Inicia el proceso de carga diferida
+        this.manager3d.init3dScene(); // Inicializa la escena 3D
+        this.manager3d.listeners(); // añade los listeners de la escena 3D
+
+        this.listennersEditImage();
+
+        // Se usa un arrow function para mantener el contexto de "this"
+        const generateTerrainBtn = document.getElementById("generate-terrain-btn");
+            generateTerrainBtn.addEventListener("click", async () => {
+            generateTerrainBtn.textContent = 'Loading...';
+            generateTerrainBtn.disabled = true;
+
+            try {
+                await this.manager3d.transforImgageTo3D();
+                generateTerrainBtn.textContent = 'Success!';
+            } catch (error) {
+                console.error(error);
+                generateTerrainBtn.textContent = 'Error!';
+            }
+
+            setTimeout(() => {
+                generateTerrainBtn.textContent = 'Generate 3D Terrain';
+                generateTerrainBtn.disabled = false;
+            }, 2000);
+        });
+
+
+          // Listener para exportar la imagen
+          const exportImageBtn = document.getElementById("export-image-btn");
+          exportImageBtn.addEventListener("click", async () => {
+              exportImageBtn.textContent = 'Loading...';
+              exportImageBtn.disabled = true;
+  
+              try {
+                  await this.exportImage();
+                  exportImageBtn.textContent = 'Success!';
+              } catch (error) {
+                  console.error(error);
+                  exportImageBtn.textContent = 'Error!';
+              }
+  
+              setTimeout(() => {
+                  exportImageBtn.textContent = 'Export Image';
+                  exportImageBtn.disabled = false;
+              }, 2000);
+          });
+
+        // Listener para exportar el modelo 3D
+        const export3DBtn = document.getElementById("export-3d-btn");
+        export3DBtn.addEventListener("click", async () => {
+            export3DBtn.textContent = 'Loading...';
+            export3DBtn.disabled = true;
+
+            try {
+                await this.manager3d.export3DModel();
+                export3DBtn.textContent = 'Success!';
+            } catch (error) {
+                console.error(error);
+                export3DBtn.textContent = 'Error!';
+            }
+
+            setTimeout(() => {
+                export3DBtn.textContent = 'Export 3D Model';
+                export3DBtn.disabled = false;
+            }, 2000);
+        });
+
+
+    }
+
+    // Función para exportar la imagen como PNG
+    exportImage() {
+        return new Promise((resolve, reject) => {
+            try {
+                const link = document.createElement('a');
+                const canvas = document.getElementById('edited-canvas');
+                const imageData = canvas.toDataURL('image/png');
+
+                link.href = imageData;
+                link.download = 'terrain-image.png';
+                link.click();
+                resolve();
+            } catch (error) {
+                console.error(error);
+                reject(error);
+            }
+        });
+    }
+
 
     applyImageAdjustments() {
         const img = new Image();
@@ -372,60 +667,6 @@ export class engine {
 
     listennersEditImage() {
         const _me = this; 
-
-        function OldApplyImageAdjustments() {
-            const img = new Image();
-            img.src = _me.originalImageData;
-
-            img.onload = function() {
-                const canvas = document.getElementById('edited-canvas');
-                const ctx = canvas.getContext('2d');
-
-                // Establecer dimensiones del canvas
-                canvas.width = img.width;
-                canvas.height = img.height;
-
-                // Limpiar el canvas y dibujar la imagen
-                ctx.clearRect(0, 0, canvas.width, canvas.height);
-                ctx.drawImage(img, 0, 0);
-
-                // Obtener valores de ajuste
-                const blackLevel = parseInt(document.getElementById('blackLevel').value);
-                const whiteLevel = parseInt(document.getElementById('whiteLevel').value);
-                const gamma = parseFloat(document.getElementById('gamma').value);
-
-                // Obtener datos de la imagen
-                const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-                const data = imageData.data;
-
-                // Procesar cada píxel
-                for (let i = 0; i < data.length; i += 4) {
-                    let pixelValue = data[i]; // Valor de gris
-
-                    // Ajustar niveles de negro y blanco
-                    let normalizedPixel = (pixelValue - blackLevel) / (whiteLevel - blackLevel);
-                    normalizedPixel = Math.max(0, Math.min(1, normalizedPixel));
-
-                    // Aplicar corrección gamma
-                    let gammaCorrected = Math.pow(normalizedPixel, 1 / gamma);
-
-                    // Mapear de vuelta a 0-255
-                    let newPixelValue = gammaCorrected * 255;
-                    newPixelValue = Math.max(0, Math.min(255, newPixelValue));
-
-                    // Asignar nuevo valor al píxel
-                    data[i] = data[i + 1] = data[i + 2] = newPixelValue;
-                    // data[i + 3] es el canal alfa, se deja igual
-                }
-
-                // Actualizar los datos de la imagen en el canvas
-                ctx.putImageData(imageData, 0, 0);
-
-                // Actualizar la imagen de vista previa
-                document.getElementById('terrain-image').src = canvas.toDataURL('image/png');
-            };
-        }
-
         // Agregar eventos a los nuevos controles
         document.getElementById('blackLevel').addEventListener('input', () => {
             this.applyImageAdjustments();
@@ -437,14 +678,6 @@ export class engine {
             this.applyImageAdjustments();
         });
     }
-    
-
-    async transforImgageTo3D() {
-        const image = document.getElementById('terrain-image').src;
-        await this.renderTerrain3D(image);
-    }
-    
-    
 
     lazyLoading() {
         // Usamos una función de flecha para mantener el contexto de "this"
@@ -563,253 +796,6 @@ export class engine {
             console.error('Canvas not found for preview image.');
         }
     }
-    
-    
-
-    async init3dScene() {
-        this.scene = new THREE.Scene(); // Crea la escena 3D
-        this.camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000); // Crea la cámara 3D
-        this.camera.position.set(0, 7, 15); // Posiciona la cámara
-
-        const canvas3D = document.getElementById('terrain-canvas'); // Obtiene el canvas para renderizado
-
-        this.renderer = new THREE.WebGLRenderer({
-            canvas: canvas3D,
-            antialias: true,
-            preserveDrawingBuffer: true,
-        });
-        this.renderer.setSize(window.innerWidth, window.innerHeight); // Establece el tamaño del renderizador
-        this.renderer.shadowMap.enabled = true; // Habilita sombras
-        this.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
-
-        this.controls = new OrbitControls(this.camera, this.renderer.domElement); // Configura los controles
-
-        // Añadir luces a la escena
-        const ambientLight = new THREE.AmbientLight(0xffffff, 0.3); // Luz ambiental
-        this.scene.add(ambientLight);
-
-        const directionalLight = new THREE.DirectionalLight(0xffffff, 1.0); // Luz direccional
-        directionalLight.position.set(5, 10, 7);
-        directionalLight.castShadow = true; // Permitir que la luz genere sombras
-        directionalLight.shadow.mapSize.set(2048, 2048); // Tamaño de las sombras
-        this.scene.add(directionalLight);
-
-        const pointLight = new THREE.PointLight(0xffffff, 0.5); // Luz puntual
-        pointLight.position.set(-5, 10, -5);
-        pointLight.castShadow = true; // Permitir que la luz genere sombras
-        this.scene.add(pointLight);
-
-
-        this.axesHelper = new THREE.AxesHelper(20);
-        this.axesHelper.visible = false;  // Inicialmente no visible
-        this.scene.add(this.axesHelper);
-
-        this.clock = new THREE.Clock();
-        // Inicializar el ViewHelper
-        //this.viewHelper = new ViewHelper(this.camera, this.renderer.domElement );
-        //this.scene.add(this.viewHelper); // Asegúrate de agregarlo a la escena si es necesario.
-
-        this.controls.saveState();
-        // this.viewHelper.controls = this.controls;
-        // this.viewHelper.controls.center = this.controls.target;
-        // this.viewHelper.visible = this.params.showViewHelper;
-        // const viewHelperElement =  document.createElement('div');
-        // viewHelperElement.id = 'viewHelper';
-        //document.getElementById("canvas-container").appendChild( viewHelperElement );
-
-        //viewHelperElement.addEventListener('pointerup', (event) => this.viewHelper.handleClick(event));
-
-
-
-        // Inicializar Stats
-        this.stats = new Stats();
-        this.stats.showPanel(0); // 0: FPS, 1: ms, 2: mb, 3+: personalizados
-
-        // Estilizar el panel para posicionarlo en la esquina superior derecha
-        this.stats.domElement.style.position = 'absolute';
-        this.stats.domElement.style.top = '0';
-        this.stats.domElement.style.right = '0';
-        this.stats.domElement.style.left = 'auto';
-
-        // Agregar el panel al contenedor
-        const container = document.getElementById('canvas-container');
-        container.appendChild(this.stats.domElement);
-        
-
-        // Configurar la GUI
-        const gui = new dat.GUI({ autoPlace: false });
-        const guiContainer = document.getElementById('canvas-container');
-        guiContainer.appendChild(gui.domElement);
-
-        gui.add(this.params, 'wireframe').onChange(value => {
-            const terrainMesh = this.scene.getObjectByName('terrainMesh');
-            if (terrainMesh) {
-                terrainMesh.material.wireframe = value;
-            }
-        });
-
-        gui.add(this.params, 'displacementScale', 0.1, 10).onChange(value => {
-            this.transforImgageTo3D();
-        });
-
-        gui.addColor(this.params, 'lowColor').onChange(value => {
-            this.transforImgageTo3D();
-        });
-
-        gui.addColor(this.params, 'midColor').onChange(value => {
-            this.transforImgageTo3D();
-        });
-
-        gui.addColor(this.params, 'highColor').onChange(value => {
-             this.transforImgageTo3D();
-        });
-
-        gui.add(this.params, 'rotationAnimation').name('Animar Rotación');
-
-        gui.add(this.axesHelper, 'visible').name('Mostrar Ejes');
-
-        // gui.add(this.params, 'showViewHelper').name('Mostrar ViewHelper').onChange(value => {
-        //     this.viewHelper.visible = value; // Cambiar visibilidad del ViewHelper
-        // });
-
-        // Animar la escena
-        const animate = () => {
-            requestAnimationFrame(animate);
-        
-            this.stats.begin(); 
-            this.controls.update();
-        
-            const delta = this.clock.getDelta();
-            
-            // Actualiza y renderiza el ViewHelper
-            // if (this.params.showViewHelper && this.viewHelper.animating) {
-            //     this.viewHelper.update(delta); // Actualiza el ViewHelper
-            //     this.viewHelper.render(this.renderer); // Renderiza el ViewHelper
-            // }
-        
-            // Animación de rotación del terreno (si está habilitada)
-            if (this.params.rotationAnimation) {
-                const terrainMesh = this.scene.getObjectByName('terrainMesh');
-                if (terrainMesh) {
-                    terrainMesh.rotation.z += 0.01; // Velocidad de rotación
-                }
-            }
-        
-            this.renderer.clear();
-            this.renderer.render(this.scene, this.camera);
-            this.stats.end(); 
-        };
-        
-
-        animate(); // Inicia la animación
-
-        await this.transforImgageTo3D();
-    }
-
-    // Función para renderizar el terreno en 3D a partir de la imagen
-    async  renderTerrain3D(imageUrl) {
-        const textureLoader = new THREE.TextureLoader();
-
-        const displacementTexture = await new Promise((resolve, reject) => {
-            textureLoader.load(
-                imageUrl,
-                texture => resolve(texture),
-                undefined,
-                err => reject(err)
-            );
-        });
-
-        const colorTexture = await new Promise((resolve, reject) => {
-            textureLoader.load(
-                imageUrl,
-                texture => resolve(texture),
-                undefined,
-                err => reject(err)
-            );
-        });
-        // Crear la geometría del plano
-        const planeGeometry = new THREE.PlaneGeometry(10, 10, 256, 256);
-    
-        // Crear el material con el desplazamiento y la textura de color
-        const material = new THREE.ShaderMaterial({
-            vertexShader: `
-                varying vec2 vUv;
-                varying float vDisplacement;
-    
-                uniform sampler2D uDisplacementTexture;
-                uniform float uDisplacementScale;
-    
-                void main() {
-                    vUv = uv;
-    
-                    vec4 displacement = texture2D(uDisplacementTexture, uv);
-                    vDisplacement = displacement.r;
-    
-                    vec3 newPosition = position + normal * vDisplacement * uDisplacementScale;
-    
-                    gl_Position = projectionMatrix * modelViewMatrix * vec4(newPosition, 1.0);
-                }
-            `,
-    
-            fragmentShader: `
-                varying vec2 vUv;
-                varying float vDisplacement;
-    
-                uniform sampler2D uColorTexture;
-                uniform vec3 uLowColor;
-                uniform vec3 uMidColor;
-                uniform vec3 uHighColor;
-                uniform float uColorIntensity;
-    
-                void main() {
-                    vec4 textureColor = texture2D(uColorTexture, vUv);
-    
-                    vec3 lowColor = uLowColor;
-                    vec3 midColor = uMidColor;
-                    vec3 highColor = uHighColor;
-    
-                    vec3 gradientColor;
-                    if (vDisplacement < 0.5) {
-                        gradientColor = mix(lowColor, midColor, smoothstep(0.0, 0.5, vDisplacement));
-                    } else {
-                        gradientColor = mix(midColor, highColor, smoothstep(0.5, 1.0, vDisplacement));
-                    }
-    
-                    vec3 blendedColor = mix(textureColor.rgb, gradientColor, uColorIntensity);
-    
-                    gl_FragColor = vec4(blendedColor, 1.0);
-                }
-            `,
-    
-            uniforms: {
-                uDisplacementTexture: { value: displacementTexture },
-                uColorTexture: { value: colorTexture },
-                uDisplacementScale: { value: this.params.displacementScale },
-                uLowColor: { value: new THREE.Color(this.params.lowColor) },
-                uMidColor: { value: new THREE.Color(this.params.midColor) },
-                uHighColor: { value: new THREE.Color(this.params.highColor) },
-                uColorIntensity: { value: 0.4 },
-            },
-    
-            side: THREE.DoubleSide,
-            wireframe: this.params.wireframe,
-        });
-    
-        // Eliminar la malla previa si existe
-        const existingMesh = this.scene.getObjectByName('terrainMesh');
-        if (existingMesh) {
-            this.scene.remove(existingMesh);
-        }
-    
-        // Crear la malla del terreno
-        const plane = new THREE.Mesh(planeGeometry, material);
-        plane.rotation.x = -Math.PI / 2;
-        plane.position.y = 2;
-        plane.receiveShadow = true;
-        plane.castShadow = true;
-        plane.name = 'terrainMesh';
-    
-        this.scene.add(plane);
-    }
+      
     
 }
