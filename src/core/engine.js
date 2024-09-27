@@ -15,6 +15,7 @@ class Manager3d {
     viewHelper = null;
     clock = null;
     axesHelper = null;
+    gridHelper = null;
 
     params = {
         wireframe: false,
@@ -27,6 +28,7 @@ class Manager3d {
         applyColors: true, 
         transformControlsVisible: false,
         boxHelperVisible: true,
+        gridVisible: false,
     };
     
     
@@ -157,6 +159,11 @@ class Manager3d {
         this.initBoxHelper(plane);
 
     }
+    initGridHelper() {
+        this.gridHelper = new THREE.GridHelper(50, 50); // Crear la cuadrícula
+        this.gridHelper.visible = this.params.gridVisible; // Inicialmente no visible
+        this.scene.add(this.gridHelper); // Agregar a la escena
+    }
     initBoxHelper(plane){
         // Añadir un BoxHelper para visualizar el límite del objeto
         if (this.boxHelper) {
@@ -225,6 +232,9 @@ class Manager3d {
         // Configurar la GUI
         this.initGUI();
 
+        // add grid to scene
+        this.initGridHelper();
+
         // Animar la escena
         const animate = () => {
             requestAnimationFrame(animate);
@@ -262,6 +272,10 @@ class Manager3d {
         }else{
             this.transformControls.visible = false;
             this.transformControls.enabled = false; 
+        }
+        // Controlar la visibilidad del grid
+        if (this.gridHelper) {
+            this.gridHelper.visible = this.params.gridVisible;
         }
     }
 
@@ -417,10 +431,16 @@ class Manager3d {
             }
         });
 
+        helpersFolder.add(this.params, 'gridVisible').name('Show Grid').onChange(value => {
+            if (this.gridHelper) {
+                this.gridHelper.visible = value;
+            }
+        });
+
         // Abrir carpetas por defecto
-        appearanceFolder.open();
-        displacementFolder.open();
-        animationFolder.open();
+        //appearanceFolder.open();
+        //displacementFolder.open();
+        //animationFolder.open();
         helpersFolder.open();
     }    
 
