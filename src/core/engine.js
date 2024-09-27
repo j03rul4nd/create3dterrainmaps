@@ -146,9 +146,13 @@ class Manager3d {
         plane.castShadow = true;
         plane.name = 'terrainMesh';
     
-        this.transformControls.attach(plane);
-
+        
+        
+        
         this.scene.add(plane);
+        
+        this.transformControls.attach(plane);
+        
         // Añadir un BoxHelper para visualizar el límite del objeto
         this.initBoxHelper(plane);
 
@@ -408,9 +412,11 @@ class Manager3d {
         helpersFolder.add(this.params, 'boxHelperVisible').name('Mostrar Box Helper').onChange(value => {
             if (this.boxHelper) {
                 this.boxHelper.visible = value;
+                this.boxHelper.update();  // Actualiza el BoxHelper para reflejar los cambios
+
             }
         });
-        
+
         // Abrir carpetas por defecto
         appearanceFolder.open();
         displacementFolder.open();
