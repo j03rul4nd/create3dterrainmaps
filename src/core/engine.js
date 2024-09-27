@@ -2,6 +2,8 @@ import * as THREE from "three";
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls';
 import { GLTFExporter } from 'three/examples/jsm/exporters/GLTFExporter.js';
 import { ViewHelper } from 'three/examples/jsm/helpers/ViewHelper.js';
+import { TransformControls } from 'three/examples/jsm/controls/TransformControls.js';
+
 
 class Manager3d {
 
@@ -21,8 +23,13 @@ class Manager3d {
         midColor: "#80b3ff", // Color azul para elevación media
         highColor: "#80ff80", // Color verde para alta elevación
         rotationAnimation: false,
-        showViewHelper: true, 
+        showViewHelper: true,
+        applyColors: true, 
+        transformControlsVisible: false,
+        boxHelperVisible: true,
     };
+    
+    
 
     constructor() {
 
@@ -57,52 +64,58 @@ class Manager3d {
             vertexShader: `
                 varying vec2 vUv;
                 varying float vDisplacement;
-    
+        
                 uniform sampler2D uDisplacementTexture;
                 uniform float uDisplacementScale;
-    
+        
                 void main() {
                     vUv = uv;
-    
+        
                     vec4 displacement = texture2D(uDisplacementTexture, uv);
                     vDisplacement = displacement.r;
-    
+        
                     vec3 newPosition = position + normal * vDisplacement * uDisplacementScale;
-    
+        
                     gl_Position = projectionMatrix * modelViewMatrix * vec4(newPosition, 1.0);
                 }
             `,
-    
+        
             fragmentShader: `
                 varying vec2 vUv;
                 varying float vDisplacement;
-    
+        
                 uniform sampler2D uColorTexture;
                 uniform vec3 uLowColor;
                 uniform vec3 uMidColor;
                 uniform vec3 uHighColor;
                 uniform float uColorIntensity;
-    
+                uniform bool uApplyColors; // Nuevo uniform para controlar la aplicación de colores
+        
                 void main() {
                     vec4 textureColor = texture2D(uColorTexture, vUv);
-    
+        
                     vec3 lowColor = uLowColor;
                     vec3 midColor = uMidColor;
                     vec3 highColor = uHighColor;
-    
+        
                     vec3 gradientColor;
                     if (vDisplacement < 0.5) {
                         gradientColor = mix(lowColor, midColor, smoothstep(0.0, 0.5, vDisplacement));
                     } else {
                         gradientColor = mix(midColor, highColor, smoothstep(0.5, 1.0, vDisplacement));
                     }
-    
-                    vec3 blendedColor = mix(textureColor.rgb, gradientColor, uColorIntensity);
-    
-                    gl_FragColor = vec4(blendedColor, 1.0);
+        
+                    vec3 finalColor;
+                    if (uApplyColors) {
+                        finalColor = mix(textureColor.rgb, gradientColor, uColorIntensity); // Aplicar los colores
+                    } else {
+                        finalColor = textureColor.rgb; // No aplicar los colores, usar la textura original
+                    }
+        
+                    gl_FragColor = vec4(finalColor, 1.0);
                 }
             `,
-    
+        
             uniforms: {
                 uDisplacementTexture: { value: displacementTexture },
                 uColorTexture: { value: colorTexture },
@@ -111,11 +124,13 @@ class Manager3d {
                 uMidColor: { value: new THREE.Color(this.params.midColor) },
                 uHighColor: { value: new THREE.Color(this.params.highColor) },
                 uColorIntensity: { value: 0.4 },
+                uApplyColors: { value: this.params.applyColors }, // Añadir el uniform que controla la aplicación de colores
             },
-    
+        
             side: THREE.DoubleSide,
             wireframe: this.params.wireframe,
         });
+        
     
         // Eliminar la malla previa si existe
         const existingMesh = this.scene.getObjectByName('terrainMesh');
@@ -131,8 +146,38 @@ class Manager3d {
         plane.castShadow = true;
         plane.name = 'terrainMesh';
     
+        this.transformControls.attach(plane);
+
         this.scene.add(plane);
+        // Añadir un BoxHelper para visualizar el límite del objeto
+        this.initBoxHelper(plane);
+
     }
+    initBoxHelper(plane){
+        // Añadir un BoxHelper para visualizar el límite del objeto
+        if (this.boxHelper) {
+            this.scene.remove(this.boxHelper);  // Eliminar el BoxHelper anterior si existe
+        }
+        this.boxHelper = new THREE.BoxHelper(plane, 0xffff00);  // Guardar la referencia
+        this.boxHelper.visible = this.params.boxHelperVisible;  // Establecer la visibilidad según el parámetro
+        this.scene.add(this.boxHelper);
+    }
+    initTransformControls() {
+        // Añadir TransformControls
+        this.transformControls = new TransformControls(this.camera, this.renderer.domElement);
+        this.transformControls.addEventListener('change', () => this.renderer.render(this.scene, this.camera)); // Actualizar el render cuando los controles cambian
+        
+        // Establecer visibilidad por defecto como false
+        this.transformControls.visible = false;
+    
+        this.scene.add(this.transformControls);
+    
+        // Asegúrate de que OrbitControls no interfieran con TransformControls
+        this.transformControls.addEventListener('dragging-changed', (event) => {
+            this.controls.enabled = !event.value;
+        });
+    }
+    
 
     async init3dScene() {
 
@@ -154,6 +199,10 @@ class Manager3d {
 
         this.controls = new OrbitControls(this.camera, this.renderer.domElement); // Configura los controles
         this.controls.saveState();
+
+        // Añadir TransformControls
+        this.initTransformControls()
+
 
         // Añadir luces a la escena
         this.initlightsScene();
@@ -177,7 +226,6 @@ class Manager3d {
             requestAnimationFrame(animate);
         
             this.stats.begin(); 
-            this.controls.update();
 
             // Actualiza y renderiza el ViewHelper
             // this.updateViewHelper(); // aun en desarrollo 
@@ -185,6 +233,7 @@ class Manager3d {
             // Animación de rotación del terreno (si está habilitada)
             this.updateParams();
         
+            this.controls.update();
             this.renderer.clear();
             this.renderer.render(this.scene, this.camera);
             this.stats.end(); 
@@ -202,6 +251,13 @@ class Manager3d {
             if (terrainMesh) {
                 terrainMesh.rotation.z += 0.01; // Velocidad de rotación
             }
+        }
+        if(this.params.transformControlsVisible){
+            this.transformControls.visible = true;
+            this.transformControls.enabled = true; 
+        }else{
+            this.transformControls.visible = false;
+            this.transformControls.enabled = false; 
         }
     }
 
@@ -290,43 +346,77 @@ class Manager3d {
         });
 
     }
-    initGUI(){
+
+    initGUI() {
         // Configurar la GUI
         const gui = new dat.GUI({ autoPlace: false });
         const guiContainer = document.getElementById('canvas-container');
         guiContainer.appendChild(gui.domElement);
-
-        gui.add(this.params, 'wireframe').onChange(value => {
+    
+        // Crear carpetas (folders) para organizar los parámetros
+        const appearanceFolder = gui.addFolder('Apariencia');
+        const displacementFolder = gui.addFolder('Desplazamiento');
+        const animationFolder = gui.addFolder('Animaciones');
+        const helpersFolder = gui.addFolder('Ayudas Visuales');
+    
+        // Apariencia - Colores y Malla
+        appearanceFolder.add(this.params, 'wireframe').name('Mostrar Wireframe').onChange(value => {
             const terrainMesh = this.scene.getObjectByName('terrainMesh');
             if (terrainMesh) {
                 terrainMesh.material.wireframe = value;
             }
         });
-
-        gui.add(this.params, 'displacementScale', 0.1, 10).onChange(value => {
+    
+        appearanceFolder.addColor(this.params, 'lowColor').name('Color Bajo').onChange(value => {
+            this.transforImgageTo3D();
+        });
+    
+        appearanceFolder.addColor(this.params, 'midColor').name('Color Medio').onChange(value => {
+            this.transforImgageTo3D();
+        });
+    
+        appearanceFolder.addColor(this.params, 'highColor').name('Color Alto').onChange(value => {
+            this.transforImgageTo3D();
+        });
+    
+        appearanceFolder.add(this.params, 'applyColors').name('Aplicar Colores').onChange(value => {
+            this.transforImgageTo3D();
+        });
+    
+        // Desplazamiento - Escala
+        displacementFolder.add(this.params, 'displacementScale', 0.1, 10).name('Escala de Desplazamiento').onChange(value => {
             this.transforImgageTo3D();
         });
 
-        gui.addColor(this.params, 'lowColor').onChange(value => {
-            this.transforImgageTo3D();
-        });
-
-        gui.addColor(this.params, 'midColor').onChange(value => {
-            this.transforImgageTo3D();
-        });
-
-        gui.addColor(this.params, 'highColor').onChange(value => {
-             this.transforImgageTo3D();
-        });
-
-        gui.add(this.params, 'rotationAnimation').name('Animar Rotación');
-
-        gui.add(this.axesHelper, 'visible').name('Mostrar Ejes');
-
-        // gui.add(this.params, 'showViewHelper').name('Mostrar ViewHelper').onChange(value => {
+        // Si decides habilitar el viewHelper más adelante, puedes descomentar esto:
+        // helpersFolder.add(this.params, 'showViewHelper').name('Mostrar ViewHelper').onChange(value => {
         //     this.viewHelper.visible = value; // Cambiar visibilidad del ViewHelper
         // });
-    }
+        
+
+
+    
+        // Animaciones
+        animationFolder.add(this.params, 'rotationAnimation').name('Animar Rotación');
+    
+        // Ayudas Visuales - Ejes y otros helpers
+        helpersFolder.add(this.axesHelper, 'visible').name('Mostrar Ejes');
+        // Añadir opción para mostrar u ocultar los TransformControls
+        helpersFolder.add(this.params, 'transformControlsVisible').name('Mostrar Transform Controls');
+
+        // Ayudas Visuales - Controlar la visibilidad del BoxHelper
+        helpersFolder.add(this.params, 'boxHelperVisible').name('Mostrar Box Helper').onChange(value => {
+            if (this.boxHelper) {
+                this.boxHelper.visible = value;
+            }
+        });
+        
+        // Abrir carpetas por defecto
+        appearanceFolder.open();
+        displacementFolder.open();
+        animationFolder.open();
+        helpersFolder.open();
+    }    
 
     async transforImgageTo3D() {
         const image = document.getElementById('terrain-image').src;
