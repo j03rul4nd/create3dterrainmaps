@@ -33,12 +33,21 @@
     transform: scale(1.05); /* Efecto de zoom suave al pasar el ratón */
   }
 
+  .texture-section-input {
+    display: flex;
+    flex-direction: row;
+    gap: 10px;
+    width: 100%;
+    align-items: center;
+    justify-content: flex-start;
+  }
   /* Media queries para pantallas */
   @media (max-width: 1200px) {
     #border-terrain-image {
       max-width: 500px; /* Reducir tamaño en pantallas medianas */
       padding: 0.8rem;
     }
+
   }
   
   @media (max-width: 768px) {
@@ -53,6 +62,16 @@
       max-width: 100%; /* En móviles, el contenedor ocupa el 100% del ancho */
       min-width: unset; /* Quitar el min-width en pantallas móviles */
       padding: 0.5rem;
+    }
+  }
+  @media (max-width: 600px) {
+    .texture-section-input {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      width: 100%;
+      align-items: center;
+      justify-content: flex-start;
     }
   }
   
@@ -93,12 +112,11 @@ button#custom-file-upload, #clear-file-upload {
 }
 .setting-option-image.texture {
   display: flex;
-  justify-content: space-between;
-}
-.texture-section-input {
-  display: flex;
-  flex-direction: row;
-  gap: 10px;
+  justify-content: flex-start;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 5px;
+  align-content: flex-start;
 }
 span#custom-texture-file-name {
   width: 100%;
@@ -149,7 +167,7 @@ div#image-preview {
   margin-bottom: 1rem;
   margin-top: 1rem;
   overflow: hidden;
-  max-height: 186px;
+  max-height: 486px;
   transition: max-height 0.5s ease, opacity 0.5s ease;
   position: relative;
 }
@@ -219,7 +237,7 @@ div#image-preview {
 }
 
 .sectionContentComponentCard[data-is-open="true"] .captionCardContent {
-  max-height: 700px; /* Ajustar al contenido */
+  max-height: 900px; /* Ajustar al contenido */
   opacity: 1;
   transition: max-height 0.5s ease, opacity 0.5s ease;
 }
