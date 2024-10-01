@@ -530,6 +530,8 @@ class Manager3d {
     async transforImgageTo3D() {
         // Obtener la imagen predeterminada para generar el terreno 3D
         const image = document.getElementById('terrain-image').src;
+        const defaultImage = document.getElementById("default-Texture-image")
+        defaultImage.src = image;
     
         // Obtener la entrada del archivo de textura
         const textureInput = document.getElementById('options-image-texture-file');
@@ -1156,6 +1158,8 @@ export class engine {
                 this.applyImageAdjustments();
             };
             img.src = imageDataUrl;
+            const defaultImage = document.getElementById("default-Texture-image")
+            defaultImage.src = imageDataUrl;
         } else {
             console.error('Canvas not found for preview image.');
         }
