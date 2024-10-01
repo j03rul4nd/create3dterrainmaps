@@ -9,7 +9,10 @@ export class uiController {
         this.initLazyLoading();
         this.initListenersSections();
         this.setJuicyEffect();
+        this.initListenerFileOptionsImage();
     }
+
+
 
     // Método para configurar y aplicar lazy loading con Intersection Observer
     initLazyLoading() {
@@ -48,6 +51,56 @@ export class uiController {
             }
         }
         toggleHeader.addEventListener('click', toggleContent);
+
+    }
+
+    initListenerFileOptionsImage(){
+        // Seleccionar los elementos del DOM
+        const fileInput = document.getElementById('options-image-texture-file');
+        const fileNameDisplay = document.getElementById('custom-texture-file-name');
+        const fileUploadButton = document.getElementById('custom-file-upload');
+        const clearFileButton = document.getElementById('clear-file-upload');
+        const imagePreviewContainer = document.getElementById('image-preview');
+        const previewImage = document.getElementById('preview-img');
+
+        // Añadir un listener al botón para que abra el selector de archivos
+        fileUploadButton.addEventListener('click', function(event) {
+            event.preventDefault(); // Evitar el comportamiento por defecto del botón
+            fileInput.click(); // Disparar el click en el input de tipo file
+        });
+
+        // Cambiar el texto del span cuando el usuario seleccione un archivo y mostrar vista previa
+        fileInput.addEventListener('change', function() {
+            if (fileInput.files.length > 0) {
+            const file = fileInput.files[0];
+            fileNameDisplay.textContent = file.name; // Mostrar el nombre del archivo seleccionado
+            clearFileButton.style.display = 'inline-block'; // Mostrar el botón de limpiar
+
+            // Comprobar si el archivo es una imagen válida
+            if (file.type.startsWith('image/')) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                previewImage.src = e.target.result; // Mostrar la imagen cargada en la vista previa
+                imagePreviewContainer.style.display = 'block'; // Mostrar el cuadro de vista previa
+                }
+                reader.readAsDataURL(file); // Leer el archivo como una URL
+            }
+            } else {
+            fileNameDisplay.textContent = 'No file selected'; // Volver a mostrar el texto por defecto si no hay archivo
+            clearFileButton.style.display = 'none'; // Ocultar el botón de limpiar
+            imagePreviewContainer.style.display = 'none'; // Ocultar el cuadro de vista previa
+            }
+        });
+
+        // Añadir un listener al botón de limpiar para borrar el archivo seleccionado y ocultar vista previa
+        clearFileButton.addEventListener('click', function(event) {
+            event.preventDefault(); // Evitar el comportamiento por defecto del botón
+            fileInput.value = ''; // Limpiar el valor del input file
+            fileNameDisplay.textContent = 'No file selected'; // Restablecer el texto del nombre del archivo
+            clearFileButton.style.display = 'none'; // Ocultar el botón de limpiar nuevamente
+            imagePreviewContainer.style.display = 'none'; // Ocultar el cuadro de vista previa
+            previewImage.src = ''; // Limpiar la imagen de vista previa
+        });
     }
 
     setJuicyEffect(){

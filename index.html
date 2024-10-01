@@ -108,6 +108,30 @@
                   <label for="gamma">Gamma</label>
                   <input type="range" id="gamma" min="0.1" max="5" step="0.1" value="1" aria-label="Adjust the gamma of the captured terrain image">
                 </div>
+
+                <div class="setting-option-image texture">
+
+                  <label for="options-image-texture-file">Choose a custom texture (Optional)</label>
+
+                  <input type="file" id="options-image-texture-file" accept="image/*" >
+
+                  <div class="texture-section-input">                    
+                    
+                    <div class="section-file-controls-events">
+                      <div class="options-image-texture-evente-file">
+                        <button id="custom-file-upload">Select file</button>
+                        <button id="clear-file-upload" >Clear file</button>
+                      </div>
+                      <span class="file-name" id="custom-texture-file-name">No file selected</span>                    
+                    </div>
+                    <!-- Cuadro pequeño para mostrar la vista previa -->
+                    <div id="image-preview" style="display: none; width: 50px; height: 50px; border: 1px solid #000; margin-left: 10px;">
+                      <img id="preview-img" src="" alt="Preview" style="width: 100%; height: 100%; object-fit: cover;">
+                    </div>
+
+                  </div>
+
+                </div>
              
               </div>
               
@@ -160,6 +184,10 @@
             <button class="btn-stnd" id="export-3d-btn" aria-label="Export the 3D terrain model">Export 3D Model</button>
           </div>
         </div>
+      </section>
+      <!-- compartir para las redes sociales -->
+      <section id="share-section" aria-labelledby="share-title" role="complementary">
+        <!-- <img src="/mountain.png" id="share-image" alt="A terrain image captured from the interactive map cover for share this web and support this personal project" loading="lazy" role="img" /> -->
       </section>
     </main>
   

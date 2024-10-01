@@ -27,18 +27,23 @@ class Manager3d {
         showViewHelper: true,
         applyColors: true, 
         transformControlsVisible: false,
+        transformControlsMode: 'translate', 
         boxHelperVisible: true,
         gridVisible: false,
     };
-    
-    
 
     constructor() {
 
     };
 
     // Función para renderizar el terreno en 3D a partir de la imagen
-    async  renderTerrain3D(imageUrl) {
+    async  renderTerrain3D(imageUrl, textureImage = false) {
+
+        const existingTerrainPreview = this.scene.getObjectByName('terrainMeshPreview');
+        if(existingTerrainPreview){
+            this.scene.remove(existingTerrainPreview);
+        }
+
         const textureLoader = new THREE.TextureLoader();
 
         const displacementTexture = await new Promise((resolve, reject) => {
@@ -51,8 +56,9 @@ class Manager3d {
         });
 
         const colorTexture = await new Promise((resolve, reject) => {
+            const textureUrl = textureImage ? textureImage : imageUrl;
             textureLoader.load(
-                imageUrl,
+                textureUrl,
                 texture => resolve(texture),
                 undefined,
                 err => reject(err)
@@ -122,7 +128,7 @@ class Manager3d {
                 uDisplacementTexture: { value: displacementTexture },
                 uColorTexture: { value: colorTexture },
                 uDisplacementScale: { value: this.params.displacementScale },
-                uLowColor: { value: new THREE.Color(this.params.lowColor) },
+                uLowColor: { value: new THREE.Color(this.params.lowColor) }, 
                 uMidColor: { value: new THREE.Color(this.params.midColor) },
                 uHighColor: { value: new THREE.Color(this.params.highColor) },
                 uColorIntensity: { value: 0.4 },
@@ -147,10 +153,7 @@ class Manager3d {
         plane.receiveShadow = true;
         plane.castShadow = true;
         plane.name = 'terrainMesh';
-    
-        
-        
-        
+           
         this.scene.add(plane);
         
         this.transformControls.attach(plane);
@@ -176,10 +179,20 @@ class Manager3d {
     initTransformControls() {
         // Añadir TransformControls
         this.transformControls = new TransformControls(this.camera, this.renderer.domElement);
+    
+        // Evento que se activa cuando hay un cambio en el objeto (movimiento, escala, rotación)
+        this.transformControls.addEventListener('objectChange', () => {
+            if (this.boxHelper) {
+                this.boxHelper.update();  // Actualizar el BoxHelper
+            }
+            this.renderer.render(this.scene, this.camera); // Renderizar la escena después del cambio
+        });
+    
         this.transformControls.addEventListener('change', () => this.renderer.render(this.scene, this.camera)); // Actualizar el render cuando los controles cambian
-        
-        // Establecer visibilidad por defecto como false
-        this.transformControls.visible = false;
+    
+        // Establecer visibilidad y modo por defecto
+        this.transformControls.visible = this.params.transformControlsVisible;
+        this.transformControls.setMode(this.params.transformControlsMode);
     
         this.scene.add(this.transformControls);
     
@@ -189,7 +202,6 @@ class Manager3d {
         });
     }
     
-
     async init3dScene() {
 
         this.scene = new THREE.Scene(); // Crea la escena 3D
@@ -258,20 +270,25 @@ class Manager3d {
 
         await this.transforImgageTo3D();
     }
-
     updateParams(){
         if (this.params.rotationAnimation) {
             const terrainMesh = this.scene.getObjectByName('terrainMesh');
             if (terrainMesh) {
                 terrainMesh.rotation.z += 0.01; // Velocidad de rotación
             }
+            const existingTerrainPreview = this.scene.getObjectByName('terrainMeshPreview');
+            if(existingTerrainPreview){
+                existingTerrainPreview.rotation.z += 0.01; // Velocidad de rotación
+            }
         }
-        if(this.params.transformControlsVisible){
+        // Controlar la visibilidad y el modo de TransformControls
+        if (this.params.transformControlsVisible) {
             this.transformControls.visible = true;
-            this.transformControls.enabled = true; 
-        }else{
+            this.transformControls.enabled = true;
+            this.transformControls.setMode(this.params.transformControlsMode);  // Actualiza el modo (translate, rotate, scale)
+        } else {
             this.transformControls.visible = false;
-            this.transformControls.enabled = false; 
+            this.transformControls.enabled = false;
         }
         // Controlar la visibilidad del grid
         if (this.gridHelper) {
@@ -372,38 +389,88 @@ class Manager3d {
         guiContainer.appendChild(gui.domElement);
     
         // Crear carpetas (folders) para organizar los parámetros
-        const appearanceFolder = gui.addFolder('Apariencia');
-        const displacementFolder = gui.addFolder('Desplazamiento');
-        const animationFolder = gui.addFolder('Animaciones');
-        const helpersFolder = gui.addFolder('Ayudas Visuales');
+        const appearanceFolder = gui.addFolder('Appearance');
+        const displacementFolder = gui.addFolder('Displacement');
+        const animationFolder = gui.addFolder('Animations');
+        const helpersFolder = gui.addFolder('Visual Helpers');
+        const renderFolder = gui.addFolder('Render');    // Crear una nueva carpeta llamada 'Render'
     
         // Apariencia - Colores y Malla
-        appearanceFolder.add(this.params, 'wireframe').name('Mostrar Wireframe').onChange(value => {
+        appearanceFolder.add(this.params, 'wireframe').name('Show Wireframe').onChange(value => {
             const terrainMesh = this.scene.getObjectByName('terrainMesh');
             if (terrainMesh) {
                 terrainMesh.material.wireframe = value;
             }
+            const existingTerrainPreview = this.scene.getObjectByName('terrainMeshPreview');
+            if(existingTerrainPreview){
+                existingTerrainPreview.material.wireframe = value;
+            }
         });
     
-        appearanceFolder.addColor(this.params, 'lowColor').name('Color Bajo').onChange(value => {
-            this.transforImgageTo3D();
+        appearanceFolder.addColor(this.params, 'lowColor').name('Low Color').onChange(value => {
+            // this.transforImgageTo3D();
+            const existingMesh = this.scene.getObjectByName('terrainMesh');
+            if (existingMesh) {
+                if (existingMesh.material && existingMesh.material.uniforms) {
+                    // Asegúrate de convertir el color a THREE.Color
+                    existingMesh.material.uniforms.uLowColor.value = new THREE.Color(value);
+                } else {
+                    console.warn('El material no tiene uniforms definidos o no es de tipo ShaderMaterial');
+                }
+            }
         });
     
-        appearanceFolder.addColor(this.params, 'midColor').name('Color Medio').onChange(value => {
-            this.transforImgageTo3D();
+        appearanceFolder.addColor(this.params, 'midColor').name('Mid Color').onChange(value => {
+            // this.transforImgageTo3D(); 
+            const existingMesh = this.scene.getObjectByName('terrainMesh');
+           if (existingMesh) {
+               if (existingMesh.material && existingMesh.material.uniforms) {
+                   // Asegúrate de convertir el color a THREE.Color
+                   existingMesh.material.uniforms.uMidColor.value = new THREE.Color(value);
+               } else {
+                   console.warn('El material no tiene uniforms definidos o no es de tipo ShaderMaterial');
+               }
+           }
+            
         });
     
-        appearanceFolder.addColor(this.params, 'highColor').name('Color Alto').onChange(value => {
-            this.transforImgageTo3D();
+        appearanceFolder.addColor(this.params, 'highColor').name('High Color').onChange(value => {
+           const existingMesh = this.scene.getObjectByName('terrainMesh');
+           if (existingMesh) {
+               if (existingMesh.material && existingMesh.material.uniforms) {
+                   // Asegúrate de convertir el color a THREE.Color
+                   existingMesh.material.uniforms.uHighColor.value = new THREE.Color(value);
+               } else {
+                   console.warn('El material no tiene uniforms definidos o no es de tipo ShaderMaterial');
+               }
+           }
         });
     
-        appearanceFolder.add(this.params, 'applyColors').name('Aplicar Colores').onChange(value => {
-            this.transforImgageTo3D();
+        appearanceFolder.add(this.params, 'applyColors').name('Apply Colors').onChange(value => {
+            const existingMesh = this.scene.getObjectByName('terrainMesh');
+            if (existingMesh) {
+                // Verifica que el material sea de tipo ShaderMaterial o tenga uniforms definidos
+                if (existingMesh.material && existingMesh.material.uniforms) {
+                    existingMesh.material.uniforms.uApplyColors.value = this.params.applyColors;
+                } else {
+                    console.warn('El material no tiene uniforms definidos o no es de tipo ShaderMaterial');
+                }
+            }
+
         });
     
         // Desplazamiento - Escala
-        displacementFolder.add(this.params, 'displacementScale', 0.1, 10).name('Escala de Desplazamiento').onChange(value => {
-            this.transforImgageTo3D();
+        displacementFolder.add(this.params, 'displacementScale', 0.1, 10).name('Displacement Scale').onChange(value => {
+            // this.transforImgageTo3D();
+            const existingMesh = this.scene.getObjectByName('terrainMesh');
+            if (existingMesh) {
+                if (existingMesh.material && existingMesh.material.uniforms) {
+                    // Asegúrate de convertir el color a THREE.Color
+                    existingMesh.material.uniforms.uDisplacementScale.value = value;
+                } else {
+                    console.warn('El material no tiene uniforms definidos o no es de tipo ShaderMaterial');
+                }
+            }
         });
 
         // Si decides habilitar el viewHelper más adelante, puedes descomentar esto:
@@ -415,15 +482,19 @@ class Manager3d {
 
     
         // Animaciones
-        animationFolder.add(this.params, 'rotationAnimation').name('Animar Rotación');
+        animationFolder.add(this.params, 'rotationAnimation').name('Animate Rotation');
     
         // Ayudas Visuales - Ejes y otros helpers
-        helpersFolder.add(this.axesHelper, 'visible').name('Mostrar Ejes');
+        helpersFolder.add(this.axesHelper, 'visible').name('Show Axes');
         // Añadir opción para mostrar u ocultar los TransformControls
-        helpersFolder.add(this.params, 'transformControlsVisible').name('Mostrar Transform Controls');
+        helpersFolder.add(this.params, 'transformControlsVisible').name('Show Transform Controls');
+
+        helpersFolder.add(this.params, 'transformControlsMode', ['translate', 'rotate', 'scale']).name('Transform Mode').onChange(value => {
+            this.params.transformControlsMode = value; 
+        });
 
         // Ayudas Visuales - Controlar la visibilidad del BoxHelper
-        helpersFolder.add(this.params, 'boxHelperVisible').name('Mostrar Box Helper').onChange(value => {
+        helpersFolder.add(this.params, 'boxHelperVisible').name('Show Box Helper').onChange(value => {
             if (this.boxHelper) {
                 this.boxHelper.visible = value;
                 this.boxHelper.update();  // Actualiza el BoxHelper para reflejar los cambios
@@ -437,6 +508,18 @@ class Manager3d {
             }
         });
 
+        renderFolder.add({ render: () => {
+            const terrainMesh = this.scene.getObjectByName('terrainMesh');
+            if (terrainMesh) {
+                this.renderToModelGLTFPreview();  // Llamar a la función
+            }else{
+                console.log("Ya se ha renderizado la vista previa");
+            }
+           
+        } }, 'render').name('Render Preview');
+                
+        renderFolder.open();  // Abrir la carpeta de forma predeterminada (opcional)
+
         // Abrir carpetas por defecto
         //appearanceFolder.open();
         //displacementFolder.open();
@@ -445,153 +528,208 @@ class Manager3d {
     }    
 
     async transforImgageTo3D() {
+        // Obtener la imagen predeterminada para generar el terreno 3D
         const image = document.getElementById('terrain-image').src;
-        await this.renderTerrain3D(image);
+    
+        // Obtener la entrada del archivo de textura
+        const textureInput = document.getElementById('options-image-texture-file');
+        
+        // Verificar si se ha seleccionado un archivo de imagen
+        if (textureInput.files && textureInput.files.length > 0) {
+            const file = textureInput.files[0]; // Obtenemos el primer archivo
+            const reader = new FileReader();
+    
+            reader.onload = async function(event) {
+                const textureImage = event.target.result; // La imagen en formato base64
+                // Llamamos a renderTerrain3D con la imagen y la textura
+                await this.renderTerrain3D(image, textureImage);
+            }.bind(this); // Enlazamos `this` para que puedas usar `this.renderTerrain3D` dentro de FileReader
+    
+            reader.readAsDataURL(file); // Leemos la imagen como URL base64
+        } else {
+            // Si no hay archivo de textura, llamamos solo con la imagen
+            await this.renderTerrain3D(image);
+        }
     }
+    
 
     export3DModel() {
         return new Promise((resolve, reject) => {
             try {
                 const exporter = new GLTFExporter();
-    
-                // Obtener la malla del terreno
-                const terrainMesh = this.scene.getObjectByName('terrainMesh');
-    
-                if (!terrainMesh) {
-                    console.error('No se encontró la malla del terreno para exportar.');
-                    reject('No se encontró la malla del terreno para exportar.');
-                    return;
+
+                const existingTerrainPreview = this.scene.getObjectByName('terrainMeshPreview');
+                if(existingTerrainPreview){
+                    //ya esta renderizado el modleo solo debemos de exportarlo
+                    // Ya existe un modelo renderizado, simplemente exportamos ese modelo sin transformaciones adicionales
+                    exporter.parse(
+                        existingTerrainPreview,
+                        (result) => {
+                            const output = JSON.stringify(result, null, 2);
+                            const blob = new Blob([output], { type: 'application/json' });
+                            const url = URL.createObjectURL(blob);
+
+                            const link = document.createElement('a');
+                            link.href = url;
+                            link.download = '3d-terrain-model-preview.gltf'; // Nombre de archivo para la vista previa
+                            link.click();
+
+                            // Liberar el objeto URL
+                            URL.revokeObjectURL(url);
+                            resolve();
+                        },
+                        (error) => {
+                            console.error('Error al exportar el modelo 3D de vista previa:', error);
+                            reject(error);
+                        },
+                        { binary: false }
+                    );
+
+                }else{
+                    // no se ha rendrizado el modelo asi que deberemos de hacerlo nosotros
+
+                    // Obtener la malla del terreno
+                    const terrainMesh = this.scene.getObjectByName('terrainMesh');
+        
+                    if (!terrainMesh) {
+                        console.error('No se encontró la malla del terreno para exportar.');
+                        reject('No se encontró la malla del terreno para exportar.');
+                        return;
+                    }
+        
+                    // Clonar la geometría y el material para no afectar los originales
+                    const geometry = terrainMesh.geometry.clone();
+                    const originalMaterial = terrainMesh.material;
+        
+                    // Obtener los atributos necesarios
+                    const positionAttribute = geometry.attributes.position;
+                    const uvAttribute = geometry.attributes.uv;
+        
+                    // Obtener los uniformes del material original
+                    const displacementTexture = originalMaterial.uniforms.uDisplacementTexture.value;
+                    const displacementScale = originalMaterial.uniforms.uDisplacementScale.value;
+        
+                    // Asegurarse de que la textura de desplazamiento esté cargada
+                    if (!displacementTexture.image) {
+                        console.error('La textura de desplazamiento aún no está cargada.');
+                        reject('La textura de desplazamiento aún no está cargada.');
+                        return;
+                    }
+        
+                    // Crear un canvas para extraer los datos de la textura de desplazamiento
+                    const displacementCanvas = document.createElement('canvas');
+                    displacementCanvas.width = displacementTexture.image.width;
+                    displacementCanvas.height = displacementTexture.image.height;
+                    const displacementContext = displacementCanvas.getContext('2d');
+                    displacementContext.drawImage(displacementTexture.image, 0, 0);
+                    const displacementImageData = displacementContext.getImageData(0, 0, displacementCanvas.width, displacementCanvas.height).data;
+        
+                    // Aplicar el desplazamiento a cada vértice con validaciones
+                    for (let i = 0; i < positionAttribute.count; i++) {
+                        // Obtener la posición y UV del vértice
+                        let x = positionAttribute.getX(i);
+                        let y = positionAttribute.getY(i);
+                        let z = positionAttribute.getZ(i);
+                        let u = uvAttribute.getX(i);
+                        let v = uvAttribute.getY(i);
+        
+                        // Asegurarse de que u y v están en el rango [0,1]
+                        u = THREE.MathUtils.clamp(u, 0, 1);
+                        v = THREE.MathUtils.clamp(v, 0, 1);
+        
+                        // Calcular la posición en píxeles en la textura
+                        let px = Math.floor(u * (displacementCanvas.width - 1));
+                        let py = Math.floor(v * (displacementCanvas.height - 1));
+        
+                        // Invertir el eje Y de la textura si es necesario
+                        let flippedPy = displacementCanvas.height - py - 1;
+        
+                        // Asegurarse de que px y flippedPy están dentro de los límites
+                        px = THREE.MathUtils.clamp(px, 0, displacementCanvas.width - 1);
+                        flippedPy = THREE.MathUtils.clamp(flippedPy, 0, displacementCanvas.height - 1);
+        
+                        // Obtener el índice en el array de datos
+                        const index = (flippedPy * displacementCanvas.width + px) * 4;
+        
+                        // Verificar que el índice está dentro de los límites del array
+                        if (index < 0 || index >= displacementImageData.length) {
+                            console.warn(`Índice fuera de rango en la textura de desplazamiento: ${index}`);
+                            continue; // Saltar este vértice si el índice es inválido
+                        }
+        
+                        const r = displacementImageData[index] / 255; // Normalizar entre 0 y 1
+        
+                        // Verificar si r es un número válido
+                        if (isNaN(r) || !isFinite(r)) {
+                            console.warn(`Valor de desplazamiento inválido en el vértice ${i}.`);
+                            continue; // Saltar este vértice si r es inválido
+                        }
+        
+                        // Calcular el desplazamiento
+                        const displacement = r * displacementScale;
+        
+                        // Aplicar el desplazamiento al vértice en el eje Z (debido a la rotación del plano)
+                        z += displacement;
+        
+                        // Verificar que x, y, z son números válidos
+                        if (isNaN(x) || isNaN(y) || isNaN(z)) {
+                            console.warn(`Coordenadas inválidas en el vértice ${i}.`);
+                            continue; // Saltar este vértice si alguna coordenada es inválida
+                        }
+        
+                        // Actualizar la posición del vértice
+                        positionAttribute.setXYZ(i, x, y, z);
+                    }
+        
+                    // Marcar el atributo de posición para actualización
+                    positionAttribute.needsUpdate = true;
+                    geometry.computeVertexNormals(); // Recalcular las normales para iluminación correcta
+                    geometry.computeBoundingBox(); // Calcular la caja delimitadora
+        
+                    // Establecer min y max para el accesor de posición
+                    const boundingBox = geometry.boundingBox;
+                    const min = boundingBox.min;
+                    const max = boundingBox.max;
+        
+                    positionAttribute.min = [min.x, min.y, min.z];
+                    positionAttribute.max = [max.x, max.y, max.z];
+        
+                    // Crear un material estándar con la textura de color
+                    const exportMaterial = new THREE.MeshStandardMaterial({
+                        map: originalMaterial.uniforms.uColorTexture.value,
+                        side: THREE.DoubleSide,
+                    });
+        
+                    // Crear una nueva malla para la exportación
+                    const exportMesh = new THREE.Mesh(geometry, exportMaterial);
+        
+                    // Exportar la malla
+                    exporter.parse(
+                        exportMesh,
+                        (result) => {
+                            const output = JSON.stringify(result, null, 2);
+                            const blob = new Blob([output], { type: 'application/json' });
+                            const url = URL.createObjectURL(blob);
+        
+                            const link = document.createElement('a');
+                            link.href = url;
+                            link.download = '3d-terrain-model.gltf';
+                            link.click();
+        
+                            // Liberar el objeto URL
+                            URL.revokeObjectURL(url);
+                            resolve();
+                        },
+                        (error) => {
+                            console.error('Error al exportar el modelo 3D:', error);
+                            reject(error);
+                        },
+                        { binary: false }
+                    );
+
                 }
     
-                // Clonar la geometría y el material para no afectar los originales
-                const geometry = terrainMesh.geometry.clone();
-                const originalMaterial = terrainMesh.material;
-    
-                // Obtener los atributos necesarios
-                const positionAttribute = geometry.attributes.position;
-                const uvAttribute = geometry.attributes.uv;
-    
-                // Obtener los uniformes del material original
-                const displacementTexture = originalMaterial.uniforms.uDisplacementTexture.value;
-                const displacementScale = originalMaterial.uniforms.uDisplacementScale.value;
-    
-                // Asegurarse de que la textura de desplazamiento esté cargada
-                if (!displacementTexture.image) {
-                    console.error('La textura de desplazamiento aún no está cargada.');
-                    reject('La textura de desplazamiento aún no está cargada.');
-                    return;
-                }
-    
-                // Crear un canvas para extraer los datos de la textura de desplazamiento
-                const displacementCanvas = document.createElement('canvas');
-                displacementCanvas.width = displacementTexture.image.width;
-                displacementCanvas.height = displacementTexture.image.height;
-                const displacementContext = displacementCanvas.getContext('2d');
-                displacementContext.drawImage(displacementTexture.image, 0, 0);
-                const displacementImageData = displacementContext.getImageData(0, 0, displacementCanvas.width, displacementCanvas.height).data;
-    
-                // Aplicar el desplazamiento a cada vértice con validaciones
-                for (let i = 0; i < positionAttribute.count; i++) {
-                    // Obtener la posición y UV del vértice
-                    let x = positionAttribute.getX(i);
-                    let y = positionAttribute.getY(i);
-                    let z = positionAttribute.getZ(i);
-                    let u = uvAttribute.getX(i);
-                    let v = uvAttribute.getY(i);
-    
-                    // Asegurarse de que u y v están en el rango [0,1]
-                    u = THREE.MathUtils.clamp(u, 0, 1);
-                    v = THREE.MathUtils.clamp(v, 0, 1);
-    
-                    // Calcular la posición en píxeles en la textura
-                    let px = Math.floor(u * (displacementCanvas.width - 1));
-                    let py = Math.floor(v * (displacementCanvas.height - 1));
-    
-                    // Invertir el eje Y de la textura si es necesario
-                    let flippedPy = displacementCanvas.height - py - 1;
-    
-                    // Asegurarse de que px y flippedPy están dentro de los límites
-                    px = THREE.MathUtils.clamp(px, 0, displacementCanvas.width - 1);
-                    flippedPy = THREE.MathUtils.clamp(flippedPy, 0, displacementCanvas.height - 1);
-    
-                    // Obtener el índice en el array de datos
-                    const index = (flippedPy * displacementCanvas.width + px) * 4;
-    
-                    // Verificar que el índice está dentro de los límites del array
-                    if (index < 0 || index >= displacementImageData.length) {
-                        console.warn(`Índice fuera de rango en la textura de desplazamiento: ${index}`);
-                        continue; // Saltar este vértice si el índice es inválido
-                    }
-    
-                    const r = displacementImageData[index] / 255; // Normalizar entre 0 y 1
-    
-                    // Verificar si r es un número válido
-                    if (isNaN(r) || !isFinite(r)) {
-                        console.warn(`Valor de desplazamiento inválido en el vértice ${i}.`);
-                        continue; // Saltar este vértice si r es inválido
-                    }
-    
-                    // Calcular el desplazamiento
-                    const displacement = r * displacementScale;
-    
-                    // Aplicar el desplazamiento al vértice en el eje Z (debido a la rotación del plano)
-                    z += displacement;
-    
-                    // Verificar que x, y, z son números válidos
-                    if (isNaN(x) || isNaN(y) || isNaN(z)) {
-                        console.warn(`Coordenadas inválidas en el vértice ${i}.`);
-                        continue; // Saltar este vértice si alguna coordenada es inválida
-                    }
-    
-                    // Actualizar la posición del vértice
-                    positionAttribute.setXYZ(i, x, y, z);
-                }
-    
-                // Marcar el atributo de posición para actualización
-                positionAttribute.needsUpdate = true;
-                geometry.computeVertexNormals(); // Recalcular las normales para iluminación correcta
-                geometry.computeBoundingBox(); // Calcular la caja delimitadora
-    
-                // Establecer min y max para el accesor de posición
-                const boundingBox = geometry.boundingBox;
-                const min = boundingBox.min;
-                const max = boundingBox.max;
-    
-                positionAttribute.min = [min.x, min.y, min.z];
-                positionAttribute.max = [max.x, max.y, max.z];
-    
-                // Crear un material estándar con la textura de color
-                const exportMaterial = new THREE.MeshStandardMaterial({
-                    map: originalMaterial.uniforms.uColorTexture.value,
-                    side: THREE.DoubleSide,
-                });
-    
-                // Crear una nueva malla para la exportación
-                const exportMesh = new THREE.Mesh(geometry, exportMaterial);
-    
-                // Exportar la malla
-                exporter.parse(
-                    exportMesh,
-                    (result) => {
-                        const output = JSON.stringify(result, null, 2);
-                        const blob = new Blob([output], { type: 'application/json' });
-                        const url = URL.createObjectURL(blob);
-    
-                        const link = document.createElement('a');
-                        link.href = url;
-                        link.download = '3d-terrain-model.gltf';
-                        link.click();
-    
-                        // Liberar el objeto URL
-                        URL.revokeObjectURL(url);
-                        resolve();
-                    },
-                    (error) => {
-                        console.error('Error al exportar el modelo 3D:', error);
-                        reject(error);
-                    },
-                    { binary: false }
-                );
+                
             } catch (error) {
                 console.error(error);
                 reject(error);
@@ -599,6 +737,116 @@ class Manager3d {
         });
     }
 
+    // render to scene to 
+    renderToModelGLTFPreview() {
+        try {
+            console.log('Render para previsualización de modelo GLTF clicked');
+        
+            // Obtener la malla del terreno actual
+            const terrainMesh = this.scene.getObjectByName('terrainMesh');
+            if (!terrainMesh) {
+                console.error('No se encontró la malla del terreno para exportar.');
+                return;
+            }
+
+            // Clonar la geometría y el material para no afectar los originales
+            const geometry = terrainMesh.geometry.clone();
+            const originalMaterial = terrainMesh.material;
+
+            // Obtener los atributos necesarios para el desplazamiento
+            const positionAttribute = geometry.attributes.position;
+            const uvAttribute = geometry.attributes.uv;
+            const displacementTexture = originalMaterial.uniforms.uDisplacementTexture.value;
+            const displacementScale = originalMaterial.uniforms.uDisplacementScale.value;
+
+            // Asegurarse de que la textura de desplazamiento esté cargada
+            if (!displacementTexture.image) {
+                console.error('La textura de desplazamiento aún no está cargada.');
+                return;
+            }
+
+            // Crear un canvas para extraer los datos de la textura de desplazamiento
+            const displacementCanvas = document.createElement('canvas');
+            displacementCanvas.width = displacementTexture.image.width;
+            displacementCanvas.height = displacementTexture.image.height;
+            const displacementContext = displacementCanvas.getContext('2d');
+            displacementContext.drawImage(displacementTexture.image, 0, 0);
+            const displacementImageData = displacementContext.getImageData(0, 0, displacementCanvas.width, displacementCanvas.height).data;
+
+            // Aplicar el desplazamiento a cada vértice
+            for (let i = 0; i < positionAttribute.count; i++) {
+                let x = positionAttribute.getX(i);
+                let y = positionAttribute.getY(i);
+                let z = positionAttribute.getZ(i);
+                let u = uvAttribute.getX(i);
+                let v = uvAttribute.getY(i);
+
+                u = THREE.MathUtils.clamp(u, 0, 1);
+                v = THREE.MathUtils.clamp(v, 0, 1);
+
+                let px = Math.floor(u * (displacementCanvas.width - 1));
+                let py = Math.floor(v * (displacementCanvas.height - 1));
+                let flippedPy = displacementCanvas.height - py - 1;
+
+                px = THREE.MathUtils.clamp(px, 0, displacementCanvas.width - 1);
+                flippedPy = THREE.MathUtils.clamp(flippedPy, 0, displacementCanvas.height - 1);
+
+                const index = (flippedPy * displacementCanvas.width + px) * 4;
+
+                if (index < 0 || index >= displacementImageData.length) {
+                    continue;
+                }
+
+                const r = displacementImageData[index] / 255;
+                const displacement = r * displacementScale;
+
+                z += displacement;
+                positionAttribute.setXYZ(i, x, y, z);
+            }
+
+            positionAttribute.needsUpdate = true;
+            geometry.computeVertexNormals();
+            geometry.computeBoundingBox();
+
+            // Crear un nuevo material estándar con la textura de color
+            const previewMaterial = new THREE.MeshStandardMaterial({
+                map: originalMaterial.uniforms.uColorTexture.value,
+                side: THREE.DoubleSide,
+            });
+
+            // Crear una nueva malla para la previsualización en la escena
+            const previewMesh = new THREE.Mesh(geometry, previewMaterial);
+            previewMesh.name = 'terrainMeshPreview'; // Nombrar la malla para futuras referencias
+
+            // Remover la malla actual de la escena
+            const existingMesh = this.scene.getObjectByName('terrainMesh');
+            if (existingMesh) {
+                this.scene.remove(existingMesh);
+            }
+
+            const existingTerrainPreview = this.scene.getObjectByName('terrainMeshPreview');
+            if(existingTerrainPreview){
+                this.scene.remove(existingTerrainPreview);
+            }
+
+            // Agregar la nueva malla previsualizada a la escena
+            this.scene.add(previewMesh);
+
+            // Adjuntar controles de transformación a la nueva malla, si es necesario
+            this.transformControls.attach(previewMesh);
+            //this.transformControls.setMode('rotate');
+
+            // Opcional: Añadir un BoxHelper para visualizar los límites del modelo
+            this.initBoxHelper(previewMesh);
+
+            // Renderizar la escena con la nueva malla
+            this.renderer.render(this.scene, this.camera);
+
+            console.log('Malla de previsualización renderizada.');
+        } catch (error) {
+            console.error(error);
+        }   
+    }
     // aun en desarrollo:
     initViewHelper(){
         // Inicializar el ViewHelper
@@ -915,3 +1163,4 @@ export class engine {
       
     
 }
+
