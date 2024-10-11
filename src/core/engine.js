@@ -268,8 +268,19 @@ class Manager3d {
 
         animate(); // Inicia la animación
 
+        window.addEventListener('resize', () => this.onWindowResize());
+
         await this.transforImgageTo3D();
     }
+    onWindowResize() {
+        // Actualizar el aspecto de la cámara con las nuevas dimensiones
+        this.camera.aspect = window.innerWidth / window.innerHeight;
+        this.camera.updateProjectionMatrix();
+    
+        // Ajustar el tamaño del renderer al nuevo tamaño de la ventana
+        this.renderer.setSize(window.innerWidth, window.innerHeight);
+    }
+    
     updateParams(){
         if (this.params.rotationAnimation) {
             const terrainMesh = this.scene.getObjectByName('terrainMesh');
