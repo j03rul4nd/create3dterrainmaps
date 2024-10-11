@@ -1200,7 +1200,7 @@ class ManagerMap{
 
 
 export class engine {
-    originalImageData = "/aa-modified.PNG";// "/mountain.png"; // Variable para almacenar la imagen original
+    originalImageData = "/mountain.png"; //"/aa-modified.PNG";//  Variable para almacenar la imagen original
 
     mapProviders = null;
     // Crea una capa base inicial con el proveedor Terrarium
@@ -1279,7 +1279,53 @@ export class engine {
                 export3DBtn.disabled = false;
             }, 2000);
         });
+
+
+        const btnSelectYourTerrainImage = document.getElementById("choseYourImageTerrainSection");
+
+        btnSelectYourTerrainImage.addEventListener("click", async () => {
+            const fileInput = document.getElementById("FileChooseYourImageTerrain");
+            fileInput.click();
+           
+        })
+
+        this.initFileInputListener();
+
+
     }
+
+    initFileInputListener() {
+        const fileInput = document.getElementById("FileChooseYourImageTerrain");
+        const contentTextDiv = document.getElementById("contnetTextChooseYourImageTerrain");
+    
+        fileInput.addEventListener("change", async (event) => {
+            const file = event.target.files[0];
+            if (file) {
+                // Change the div content to indicate the image is loading
+                contentTextDiv.textContent = "Loading image...";
+                console.log("Loading..."); // Log message indicating the image is loading
+    
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    console.log("Image successfully loaded!"); // Log message when the image has finished loading
+    
+                    // Change the div content to show a success message for a few seconds
+                    contentTextDiv.textContent = "Image successfully loaded!";
+                    
+                    // Wait 3 seconds before restoring the original content of the div
+                    setTimeout(() => {
+                        contentTextDiv.textContent = "Or Choose Your Image Terrain";
+                    }, 5000); // 5000 milliseconds = 5 seconds
+    
+                    const imageDataUrl = e.target.result;
+                    this.selectUserTerrainImage(imageDataUrl); // Call the function to process the selected image
+                };
+                reader.readAsDataURL(file); // Convert the file to a base64 data URL
+            }
+        });
+    }
+    
+    
 
     // Función para exportar la imagen como PNG
     exportImage() {
@@ -1395,35 +1441,69 @@ export class engine {
         });
     }
 
+
+    selectUserTerrainImage(imageDataUrl) {
+        // Llamar a la función para cargar la nueva imagen sin un canvas (se usa cuando la imagen viene del archivo)
+        this.loadNewImageTerrain(imageDataUrl);
+    }
+    
+    loadNewImageTerrain(imageDataUrl, canvas = null) {
+        let editImageCanvas = document.getElementById('edited-canvas');
+        const ctx = editImageCanvas.getContext('2d');
+    
+        // Solo ajustar el tamaño del canvas si se proporciona un canvas
+        if (canvas) {
+            editImageCanvas.width = canvas.width;
+            editImageCanvas.height = canvas.height;
+        } else {
+            // Ajusta el tamaño del canvas según la imagen cargada si no se proporciona un canvas
+            const img = new Image();
+            img.onload = () => {
+                editImageCanvas.width = img.width;
+                editImageCanvas.height = img.height;
+                ctx.drawImage(img, 0, 0);
+                this.finalizeImageSetup(imageDataUrl);
+            };
+            img.src = imageDataUrl;
+        }
+    
+        // Si el canvas es proporcionado (imagen desde el mapa), simplemente dibujamos la imagen
+        if (canvas) {
+            const img = new Image();
+            img.onload = () => {
+                ctx.drawImage(img, 0, 0);
+                this.finalizeImageSetup(imageDataUrl);
+            };
+            img.src = imageDataUrl;
+        }
+    }
+    
+    finalizeImageSetup(imageDataUrl) {
+        // Actualizar la vista previa de la imagen del terreno y otros valores por defecto
+        document.getElementById('terrain-image').src = imageDataUrl;
+        this.originalImageData = imageDataUrl; // Guarda la imagen original
+    
+        // Restablecer los valores de los inputs a sus valores por defecto
+        document.getElementById('blackLevel').value = 0;
+        document.getElementById('whiteLevel').value = 255;
+        document.getElementById('gamma').value = 1;
+    
+        // Aplicar los ajustes de imagen con los valores por defecto
+        this.applyImageAdjustments();
+    
+        // Actualizar la imagen de textura por defecto
+        const defaultImage = document.getElementById("default-Texture-image");
+        defaultImage.src = imageDataUrl;
+    }
+
     getPreviewImage() {
         // Captura la imagen del mapa y la muestra en la vista previa
         const canvas = document.querySelector('#leaflet-map-container canvas');
         if (canvas) {
             const imageDataUrl = canvas.toDataURL('image/png'); // Convierte el canvas a imagen PNG
 
-            let editImageCanvas = document.getElementById('edited-canvas');
-            const ctx = editImageCanvas.getContext('2d');
 
-            editImageCanvas.width = canvas.width;
-            editImageCanvas.height = canvas.height;
-
-            const img = new Image();
-            img.onload = () => {
-                ctx.drawImage(img, 0, 0);
-                document.getElementById('terrain-image').src = imageDataUrl;
-                this.originalImageData = imageDataUrl; // Guarda la imagen original
-
-                // Restablecer los valores de los inputs a sus valores por defecto
-                document.getElementById('blackLevel').value = 0;
-                document.getElementById('whiteLevel').value = 255;
-                document.getElementById('gamma').value = 1;
-
-                // Aplicar los ajustes de imagen con los valores por defecto
-                this.applyImageAdjustments();
-            };
-            img.src = imageDataUrl;
-            const defaultImage = document.getElementById("default-Texture-image")
-            defaultImage.src = imageDataUrl;
+            this.loadNewImageTerrain(imageDataUrl, canvas);
         } else {
             console.error('Canvas not found for preview image.');
         }
