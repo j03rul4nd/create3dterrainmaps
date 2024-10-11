@@ -57,6 +57,7 @@
   
     <!-- MAIN CONTENT -->
     <main role="main">
+
       <!-- Mapa Interactivo -->
       <section id="map-section" aria-labelledby="map-title">
         <h2 id="map-title">Interactive Map</h2>
@@ -66,7 +67,76 @@
             
           </div>
         </div>
-        <button  class="btn-stnd" id="capture-terrain-btn" aria-label="Capture Selected Terrain">Capture Terrain</button>
+
+        <div class="map-options-search-section">
+
+          <div class="option-searching-map">
+            <p class="titles-options-map">Search Coords</p>
+            <div class="section-inputs-search">
+              
+              <div class="param-search-cntr-section">
+                <div class="params-coords-search-cntr latitude">
+                  <label for="lat">latitude</label>
+                  <input type="number" name="" id="lat">
+                </div>
+                <div class="params-coords-search-cntr longitude">
+                  <label for="lng">longitude</label>
+                  <input type="number" name="" id="lng">
+                </div>
+                <div class="params-coords-search-cntr zoomParams">
+                  <label for="zoom">Zoom</label>
+                  <input type="number" name="" id="zoom">
+                </div>
+  
+              </div>
+  
+              <div id="btn-apply-coordinates-search">Search</div>
+            </div>
+          </div>
+
+          
+
+          <div class="section-datainfo-map">
+            <div class="data-mapa-current-coordinates">
+              <p class="titles-options-map">Current Coordinates:</p>
+              <div id="current-coordinates">
+
+                  <div class="statuts-current-coords">
+                    <span>Latitude:</span> 
+                    <div class="cntr-current-coords-values">
+                      <span class="current-value-options-data" id="current-coordinates-Latitude"></span><span>,</span> 
+                    </div> 
+                  </div>
+
+                  <div class="statuts-current-coords">
+                    <span>Longitude:</span>
+                    <div class="cntr-current-coords-values">
+                      <span class="current-value-options-data"  id="current-coordinates-Longitude"></span><span>,</span>  
+                    </div> 
+                  </div>
+
+                  <div class="statuts-current-coords">
+                    <span>Zoom:</span>
+                    <div class="cntr-current-coords-values">
+                      <span class="current-value-options-data"  id="current-coordinates-zoom"></span>
+                    </div> 
+                  </div>   
+
+              </div>
+            </div>
+          </div>
+
+          <div class="options-map-provider-section">
+            <label class="titles-options-map" for="mapProiderOptions">Map Providers</label>
+              <select id="mapProiderOptions">
+                <option value="terrarium">terrarium</option>
+                <option value="openStreetMap">OpenStreetMap</option>
+                <option value="ASTER_GDEM">Nasa ASTER GDEM</option>
+                <!-- <option value="SRTM">DEM SRTM</option> -->
+              </select>
+          </div>
+
+          <button  class="btn-stnd" id="capture-terrain-btn" aria-label="Capture Selected Terrain">Capture Terrain</button>
       </section>
   
       <!-- Resultado de la Captura del Terreno -->

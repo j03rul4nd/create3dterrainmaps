@@ -877,14 +877,328 @@ class Manager3d {
 
 }
 
+class ManagerMap{
+    constructor(){
+        this.map = null;
+        this.mapProviders = {};
+        this.currentLayer = null;
+        this.Operationsprovider = {}
+        this.activeOperations = {};
+    }
+
+    initializeMap() {
+        this.initOlMap(); // Inicializa el mapa de OpenLayers
+        this.listenners(); // listeners ui doom
+    }
+
+    listenners(){
+        let _me =this;
+        
+        // Añadir listener para cambiar el proveedor del mapa
+        document.getElementById('mapProiderOptions').addEventListener('change', (event) => {
+            _me.changeMapProvider(event.target.value);
+        });
+        // Listener para buscar coordenadas ingresadas
+        const searchBtn = document.getElementById('btn-apply-coordinates-search');
+        searchBtn.addEventListener('click', () => {
+            const lat = parseFloat(document.getElementById('lat').value);
+            const lng = parseFloat(document.getElementById('lng').value);
+            const zoom = parseInt(document.getElementById('zoom').value); // Obtener el valor de zoom
+
+            if (!isNaN(lat) && !isNaN(lng)) {
+                this.map.getView().setCenter(ol.proj.fromLonLat([lng, lat]));
+                
+                // Si se proporciona un valor de zoom válido, ajusta el nivel de zoom
+                if (!isNaN(zoom) && zoom >= 0 && zoom <= 20) { // Rango típico de zoom de mapas (puedes ajustarlo si es necesario)
+                    this.map.getView().setZoom(zoom);
+                } else {
+                    alert('Please enter a valid zoom level between 0 and 20.');
+                }
+            } else {
+                alert('Please enter valid latitude and longitude values.');
+            }
+        });
+
+        // Captura el terreno al hacer clic
+        document.getElementById('capture-terrain-btn').addEventListener('click', () => {
+            console.log('Capturando terreno...');
+            window.engine.getPreviewImage(); // Captura la imagen del mapa
+        });
+
+        // Actualizar las coordenadas actuales del mapa y el nivel de zoom en el span
+        this.map.on('moveend', () => {
+            const center = ol.proj.toLonLat(this.map.getView().getCenter());
+            const lat = center[1].toFixed(6);
+            const lng = center[0].toFixed(6);
+            const zoom = this.map.getView().getZoom().toFixed(2); // Obtener el nivel de zoom actual
+
+            // Actualizar el contenido del span con las coordenadas y el zoom
+            // document.getElementById('current-coordinates').textContent = `Latitude: ${lat}, Longitude: ${lng}, Zoom: ${zoom}`;
+            
+            document.getElementById('current-coordinates-Latitude').textContent = lat;
+            document.getElementById('current-coordinates-Longitude').textContent = lng;
+            document.getElementById('current-coordinates-zoom').textContent = zoom;
+
+
+
+        
+        });
+    }
+
+    buildNasaRasterLayer(){
+        // Crear la fuente WMTS para la capa ASTER_GDEM_Color_Index
+        const asterColorIndexSource = new ol.source.WMTS({
+            url: 'https://gibs-a.earthdata.nasa.gov/wmts/epsg4326/best/wmts.cgi',
+            layer: 'ASTER_GDEM_Color_Index',
+            matrixSet: '31.25m',
+            format: 'image/png',
+            projection: 'EPSG:4326',
+            tileGrid: new ol.tilegrid.WMTS({
+                origin: [-180, 90],
+                resolutions: [
+                    0.5625, 0.28125, 0.140625, 0.0703125,
+                    0.03515625, 0.017578125, 0.0087890625,
+                    0.00439453125, 0.002197265625
+                ],
+                matrixIds: ['0', '1', '2', '3', '4', '5', '6', '7', '8']
+            }),
+            style: 'default',
+            maxZoom: 8,
+            crossOrigin: 'anonymous'
+        });
+
+        
+        const operation = ([pixel]) => {
+            const [r, g, b] = pixel; // Desestructuramos los canales de color
+    
+            // Convertir el color a escala de grises usando la fórmula de luminancia estándar
+            const grayscaleValue = 0.299 * r + 0.587 * g + 0.114 * b;
+    
+            // Ajustar el contraste
+            const contrastFactor = 1.5; // Puedes modificar este valor para ajustar el contraste
+            let adjustedValue = ((grayscaleValue - 128) * contrastFactor) + 128;
+    
+            // Aplicar corrección gamma
+            const gammaExponent = 1.2; // Puedes modificar este valor para ajustar el gamma
+            const gammaCorrection = Math.pow(Math.max(0, Math.min(255, adjustedValue)) / 255, gammaExponent) * 255;
+    
+            // Devolver el valor en escala de grises con un canal alfa fijo
+            return [gammaCorrection, gammaCorrection, gammaCorrection, 255];
+        }
+
+        this.Operationsprovider["operationNasa"] = operation;
+        
+        // Crear la capa raster que aplica el filtro de escala de grises ajustado a la capa ASTER_GDEM_Color_Index
+        this.NasaRasterLayer = new ol.source.Raster({
+            sources: [asterColorIndexSource],
+            operationType: 'pixel',
+            operation: this.Operationsprovider["operationNasa"]
+        });
+
+    }
+
+    buildSRTMRasterLayer(){
+        // Crear la fuente WMTS para la capa SRTM
+        const SRTM_Color_IndexSource = new ol.source.WMTS({
+            url: 'https://gibs-a.earthdata.nasa.gov/wmts/epsg4326/best/wmts.cgi',
+            layer: 'SRTM_Color_Index',
+            matrixSet: '31.25m',
+            format: 'image/png',
+            projection: 'EPSG:4326',
+            tileGrid: new ol.tilegrid.WMTS({
+                origin: [-180, 90],
+                resolutions: [
+                    0.5625, 0.28125, 0.140625, 0.0703125,
+                    0.03515625, 0.017578125, 0.0087890625,
+                    0.00439453125, 0.002197265625
+                ],
+                matrixIds: ['0', '1', '2', '3', '4', '5', '6', '7', '8']
+            }),
+            style: 'default',
+            maxZoom: 8,
+            crossOrigin: 'anonymous'
+        });
+
+        
+        const operation = ([pixel]) => {
+            const [r, g, b] = pixel; // Desestructuramos los canales de color
+    
+            // Convertir el color a escala de grises usando la fórmula de luminancia estándar
+            const grayscaleValue = 0.299 * r + 0.587 * g + 0.114 * b;
+    
+            // Ajustar el contraste
+            const contrastFactor = 1.5; // Puedes modificar este valor para ajustar el contraste
+            let adjustedValue = ((grayscaleValue - 128) * contrastFactor) + 128;
+    
+            // Aplicar corrección gamma
+            const gammaExponent = 1.2; // Puedes modificar este valor para ajustar el gamma
+            const gammaCorrection = Math.pow(Math.max(0, Math.min(255, adjustedValue)) / 255, gammaExponent) * 255;
+    
+            // Devolver el valor en escala de grises con un canal alfa fijo
+            return [gammaCorrection, gammaCorrection, gammaCorrection, 255];
+        }
+
+        this.Operationsprovider["operationSRTM"] = operation;
+        
+        // Crear la capa raster que aplica el filtro de escala de grises ajustado a la capa SRTM
+        this.SRTMRasterLayer = new ol.source.Raster({
+            sources: [SRTM_Color_IndexSource],
+            operationType: 'pixel',
+            operation: this.Operationsprovider["operationSRTM"]
+        });
+
+    }
+
+    buildTerrariumRasterLayer(){
+        // Inicializa el mapa usando OpenLayers
+        const normal = new ol.source.XYZ({
+            // URL de las teselas en formato normal
+            url: "https://s3.amazonaws.com/elevation-tiles-prod/normal/{z}/{x}/{y}.png"
+        });
+
+        const terrarium = new ol.source.XYZ({
+            // URL de las teselas en formato terrarium
+            url: "https://s3.amazonaws.com/elevation-tiles-prod/terrarium/{z}/{x}/{y}.png",
+            crossOrigin: "anonymous" // Habilita el acceso a recursos externos
+        });
+
+        const operation = ([pixel]) => {
+            const [r, g, b] = pixel; // Desestructura los canales de color
+            const elevation = (r << 8) + g + (b / 256) - 32768; // Decodifica la elevación
+            const minElevation = -11000, maxElevation = 8900; // Rango de elevación
+
+            // Normaliza la elevación
+            let normalizedValue = Math.max(0, Math.min(255, (elevation - minElevation) * 255 / (maxElevation - minElevation)));
+            const contrastFactor = 1.5; // Factor de contraste ajustable
+            normalizedValue = ((normalizedValue - 128) * contrastFactor) + 128; // Ajusta el contraste
+            const gammaExponent = 1.5; // Exponente para corrección gamma
+            const gammaCorrection = Math.pow(Math.max(0, Math.min(255, normalizedValue)) / 255, gammaExponent) * 255; // Aplica corrección gamma
+
+            // Devuelve el píxel ajustado con un canal alfa fijo
+            return [gammaCorrection, gammaCorrection, gammaCorrection, 255];
+        }
+
+        this.Operationsprovider["OperationTerrarium"] = operation;
+
+
+        this.TerrariumRasterLayer = new ol.source.Raster({
+            sources: [terrarium], // Fuente de datos
+            operationType: "pixel", // Operación a nivel de píxel
+            operation:  this.Operationsprovider["OperationTerrarium"],
+        });
+    }
+
+    buildMapProviders(){
+        this.mapProviders = {
+            terrarium: this.TerrariumRasterLayer,
+            openStreetMap: new ol.source.OSM(),
+            // googleMaps: new ol.source.XYZ({
+            //     url: "https://mt1.google.com/vt/lyrs=r&x={x}&y={y}&z={z}"
+            // }),
+            ASTER_GDEM: this.NasaRasterLayer,
+            SRTM: this.SRTMRasterLayer,
+        };
+    }
+
+    initOlMap() {
+        let _me =this;
+
+        // init RasterLayer
+        this.buildNasaRasterLayer();
+        this.buildTerrariumRasterLayer();
+
+        // create options map providers
+        this.buildMapProviders();
+        
+        // default map provider
+        this.currentLayer = new ol.layer.Image({
+            source: this.mapProviders.terrarium,
+            opacity: 1.0
+        });
+
+        this.activeOperations = this.Operationsprovider["OperationTerrarium"]
+
+        /**
+    
+            // Se crea el mapa de OpenLayers
+            this.map = new ol.Map({
+                target: "leaflet-map-container", // Div donde se mostrará el mapa
+                layers: [
+                    new ol.layer.Image({
+                        source: elevation, // Fuente de datos de elevación
+                        opacity: 1.0 // Opacidad completa
+                    })
+                ],
+                view: new ol.View({
+                    center: ol.proj.fromLonLat([-95.867, 37.963]), // Centro del mapa
+                    zoom: 4 // Nivel de zoom inicial
+                })
+            });
+         * 
+         */
+
+        // Se crea el mapa de OpenLayers
+        this.map = new ol.Map({
+            target: "leaflet-map-container",
+            layers: [this.currentLayer],
+            view: new ol.View({
+                center: ol.proj.fromLonLat([-95.867, 37.963]),
+                zoom: 4
+            })
+        });
+
+
+    }
+    // Método para cambiar el proveedor de mapas
+    changeMapProvider(providerName) {
+        if (this.mapProviders[providerName]) {
+            // Eliminar la capa actual del mapa
+            this.map.removeLayer(this.currentLayer);
+    
+            // Verifica si el proveedor seleccionado es 'terrarium' para crear una capa de tipo ol.layer.Image
+            switch (providerName) {
+                case 'terrarium':
+                    this.currentLayer = new ol.layer.Image({
+                        source: this.mapProviders[providerName]
+                    })
+                    break;
+                case 'ASTER_GDEM':
+                    this.currentLayer = new ol.layer.Image({
+                        source: this.mapProviders[providerName]
+                    })
+                    break;
+                case 'SRTM':
+                    this.currentLayer = new ol.layer.Image({
+                        source: this.mapProviders[providerName]
+                    })
+                    break;
+                default:
+                    // Para los otros proveedores, utiliza ol.layer.Tile
+                    this.currentLayer = new ol.layer.Tile({
+                        source: this.mapProviders[providerName]
+                    });
+                    break;
+            }
+    
+            // Agregar la nueva capa al mapa
+            this.map.addLayer(this.currentLayer);
+        }
+    }
+}
+
+
+
 export class engine {
-    map = null; // Variable para almacenar el mapa
-    originalImageData = "/mountain.png"; // Variable para almacenar la imagen original
+    originalImageData = "/aa-modified.PNG";// "/mountain.png"; // Variable para almacenar la imagen original
+
+    mapProviders = null;
+    // Crea una capa base inicial con el proveedor Terrarium
+    currentLayer = null;
 
     constructor(options) {
-
         this.manager3d = new Manager3d();
         // Aquí se pueden inicializar opciones si es necesario
+        this.managerMap = new ManagerMap();
     }
 
     init() {
@@ -954,8 +1268,6 @@ export class engine {
                 export3DBtn.disabled = false;
             }, 2000);
         });
-
-
     }
 
     // Función para exportar la imagen como PNG
@@ -1062,72 +1374,13 @@ export class engine {
                 entries.forEach(entry => {
                     if (entry.intersectionRatio > 0.1) {
                         console.log("Map section visible, loading map");
-                        this.initializeMap(); // Inicializa el mapa
+                        this.managerMap.initializeMap(); // Inicializa el mapa
                         observer.unobserve(entry.target); // Deja de observar una vez cargado
                     }
                 });
             }, { threshold: [0.1] });
 
             observer.observe(mapSection); // Inicia la observación del mapa
-        });
-    }
-
-    initializeMap() {
-        this.initOlMap(); // Inicializa el mapa de OpenLayers
-
-        // Captura el terreno al hacer clic
-        document.getElementById('capture-terrain-btn').addEventListener('click', () => {
-            console.log('Capturando terreno...');
-            this.getPreviewImage(); // Captura la imagen del mapa
-        });
-    }
-
-    initOlMap() {
-        // Inicializa el mapa usando OpenLayers
-        const normal = new ol.source.XYZ({
-            // URL de las teselas en formato normal
-            url: "https://s3.amazonaws.com/elevation-tiles-prod/normal/{z}/{x}/{y}.png"
-        });
-
-        const terrarium = new ol.source.XYZ({
-            // URL de las teselas en formato terrarium
-            url: "https://s3.amazonaws.com/elevation-tiles-prod/terrarium/{z}/{x}/{y}.png",
-            crossOrigin: "anonymous" // Habilita el acceso a recursos externos
-        });
-
-        const elevation = new ol.source.Raster({
-            sources: [terrarium], // Fuente de datos
-            operationType: "pixel", // Operación a nivel de píxel
-            operation: ([pixel]) => {
-                const [r, g, b] = pixel; // Desestructura los canales de color
-                const elevation = (r << 8) + g + (b / 256) - 32768; // Decodifica la elevación
-                const minElevation = -11000, maxElevation = 8900; // Rango de elevación
-
-                // Normaliza la elevación
-                let normalizedValue = Math.max(0, Math.min(255, (elevation - minElevation) * 255 / (maxElevation - minElevation)));
-                const contrastFactor = 1.5; // Factor de contraste ajustable
-                normalizedValue = ((normalizedValue - 128) * contrastFactor) + 128; // Ajusta el contraste
-                const gammaExponent = 1.5; // Exponente para corrección gamma
-                const gammaCorrection = Math.pow(Math.max(0, Math.min(255, normalizedValue)) / 255, gammaExponent) * 255; // Aplica corrección gamma
-
-                // Devuelve el píxel ajustado con un canal alfa fijo
-                return [gammaCorrection, gammaCorrection, gammaCorrection, 255];
-            }
-        });
-
-        // Se crea el mapa de OpenLayers
-        this.map = new ol.Map({
-            target: "leaflet-map-container", // Div donde se mostrará el mapa
-            layers: [
-                new ol.layer.Image({
-                    source: elevation, // Fuente de datos de elevación
-                    opacity: 1.0 // Opacidad completa
-                })
-            ],
-            view: new ol.View({
-                center: ol.proj.fromLonLat([-95.867, 37.963]), // Centro del mapa
-                zoom: 4 // Nivel de zoom inicial
-            })
         });
     }
 
@@ -1165,6 +1418,5 @@ export class engine {
         }
     }
       
-    
 }
 
