@@ -1,5 +1,6 @@
 button#export-image-btn,
-button#export-3d-btn {
+button#export-3d-btn,
+button#export-3d-btn-STL {
     box-shadow: 0 4px 6px #0000001a;
     background-color: #fff;
     display: flex;

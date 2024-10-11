@@ -3,6 +3,7 @@ import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls';
 import { GLTFExporter } from 'three/examples/jsm/exporters/GLTFExporter.js';
 import { ViewHelper } from 'three/examples/jsm/helpers/ViewHelper.js';
 import { TransformControls } from 'three/examples/jsm/controls/TransformControls.js';
+import { STLExporter } from 'three/examples/jsm/exporters/STLExporter.js';
 
 
 class Manager3d {
@@ -750,6 +751,180 @@ class Manager3d {
         });
     }
 
+    exportModelSTL() {
+        return new Promise((resolve, reject) => {
+            try {
+                const exporter = new STLExporter();
+
+                const existingTerrainPreview = this.scene.getObjectByName('terrainMeshPreview');
+                if(existingTerrainPreview){
+                    //se ha renderizado el modelo preview
+
+                    // Generar la geometría STL
+                    const stlString = exporter.parse(existingTerrainPreview);
+        
+                    // Crear un blob a partir del contenido STL
+                    const blob = new Blob([stlString], { type: 'application/vnd.ms-pki.stl' });
+        
+                    // Crear un enlace para la descarga
+                    const url = URL.createObjectURL(blob);
+                    const link = document.createElement('a');
+                    link.href = url;
+                    link.download = '3d-terrain-model.stl';
+                    link.click();
+        
+                    // Liberar el objeto URL
+                    URL.revokeObjectURL(url);
+        
+                    resolve();
+
+                }else{
+                    // no se ha renderizado el modelo preview
+                    // Obtener la malla del terreno
+                    const terrainMesh = this.scene.getObjectByName('terrainMesh');
+        
+                    if (!terrainMesh) {
+                        console.error('No se encontró la malla del terreno para exportar.');
+                        reject('No se encontró la malla del terreno para exportar.');
+                        return;
+                    }
+
+                    // Clonar la geometría y el material para no afectar los originales
+                    const geometry = terrainMesh.geometry.clone();
+                    const originalMaterial = terrainMesh.material;
+        
+                    // Obtener los atributos necesarios
+                    const positionAttribute = geometry.attributes.position;
+                    const uvAttribute = geometry.attributes.uv;
+        
+                    // Obtener los uniformes del material original
+                    const displacementTexture = originalMaterial.uniforms.uDisplacementTexture.value;
+                    const displacementScale = originalMaterial.uniforms.uDisplacementScale.value;
+        
+                    // Asegurarse de que la textura de desplazamiento esté cargada
+                    if (!displacementTexture.image) {
+                        console.error('La textura de desplazamiento aún no está cargada.');
+                        reject('La textura de desplazamiento aún no está cargada.');
+                        return;
+                    }
+        
+                    // Crear un canvas para extraer los datos de la textura de desplazamiento
+                    const displacementCanvas = document.createElement('canvas');
+                    displacementCanvas.width = displacementTexture.image.width;
+                    displacementCanvas.height = displacementTexture.image.height;
+                    const displacementContext = displacementCanvas.getContext('2d');
+                    displacementContext.drawImage(displacementTexture.image, 0, 0);
+                    const displacementImageData = displacementContext.getImageData(0, 0, displacementCanvas.width, displacementCanvas.height).data;
+        
+                    // Aplicar el desplazamiento a cada vértice con validaciones
+                    for (let i = 0; i < positionAttribute.count; i++) {
+                        // Obtener la posición y UV del vértice
+                        let x = positionAttribute.getX(i);
+                        let y = positionAttribute.getY(i);
+                        let z = positionAttribute.getZ(i);
+                        let u = uvAttribute.getX(i);
+                        let v = uvAttribute.getY(i);
+        
+                        // Asegurarse de que u y v están en el rango [0,1]
+                        u = THREE.MathUtils.clamp(u, 0, 1);
+                        v = THREE.MathUtils.clamp(v, 0, 1);
+        
+                        // Calcular la posición en píxeles en la textura
+                        let px = Math.floor(u * (displacementCanvas.width - 1));
+                        let py = Math.floor(v * (displacementCanvas.height - 1));
+        
+                        // Invertir el eje Y de la textura si es necesario
+                        let flippedPy = displacementCanvas.height - py - 1;
+        
+                        // Asegurarse de que px y flippedPy están dentro de los límites
+                        px = THREE.MathUtils.clamp(px, 0, displacementCanvas.width - 1);
+                        flippedPy = THREE.MathUtils.clamp(flippedPy, 0, displacementCanvas.height - 1);
+        
+                        // Obtener el índice en el array de datos
+                        const index = (flippedPy * displacementCanvas.width + px) * 4;
+        
+                        // Verificar que el índice está dentro de los límites del array
+                        if (index < 0 || index >= displacementImageData.length) {
+                            console.warn(`Índice fuera de rango en la textura de desplazamiento: ${index}`);
+                            continue; // Saltar este vértice si el índice es inválido
+                        }
+        
+                        const r = displacementImageData[index] / 255; // Normalizar entre 0 y 1
+        
+                        // Verificar si r es un número válido
+                        if (isNaN(r) || !isFinite(r)) {
+                            console.warn(`Valor de desplazamiento inválido en el vértice ${i}.`);
+                            continue; // Saltar este vértice si r es inválido
+                        }
+        
+                        // Calcular el desplazamiento
+                        const displacement = r * displacementScale;
+        
+                        // Aplicar el desplazamiento al vértice en el eje Z (debido a la rotación del plano)
+                        z += displacement;
+        
+                        // Verificar que x, y, z son números válidos
+                        if (isNaN(x) || isNaN(y) || isNaN(z)) {
+                            console.warn(`Coordenadas inválidas en el vértice ${i}.`);
+                            continue; // Saltar este vértice si alguna coordenada es inválida
+                        }
+        
+                        // Actualizar la posición del vértice
+                        positionAttribute.setXYZ(i, x, y, z);
+                    }
+        
+                    // Marcar el atributo de posición para actualización
+                    positionAttribute.needsUpdate = true;
+                    geometry.computeVertexNormals(); // Recalcular las normales para iluminación correcta
+                    geometry.computeBoundingBox(); // Calcular la caja delimitadora
+        
+                    // Establecer min y max para el accesor de posición
+                    const boundingBox = geometry.boundingBox;
+                    const min = boundingBox.min;
+                    const max = boundingBox.max;
+        
+                    positionAttribute.min = [min.x, min.y, min.z];
+                    positionAttribute.max = [max.x, max.y, max.z];
+        
+                    // Crear un material estándar con la textura de color
+                    const exportMaterial = new THREE.MeshStandardMaterial({
+                        map: originalMaterial.uniforms.uColorTexture.value,
+                        side: THREE.DoubleSide,
+                    });
+        
+                    // Crear una nueva malla para la exportación
+                    const exportMesh = new THREE.Mesh(geometry, exportMaterial);
+        
+                    
+        
+                    // Generar la geometría STL
+                    const stlString = exporter.parse(exportMesh);
+        
+                    // Crear un blob a partir del contenido STL
+                    const blob = new Blob([stlString], { type: 'application/vnd.ms-pki.stl' });
+        
+                    // Crear un enlace para la descarga
+                    const url = URL.createObjectURL(blob);
+                    const link = document.createElement('a');
+                    link.href = url;
+                    link.download = '3d-terrain-model.stl';
+                    link.click();
+        
+                    // Liberar el objeto URL
+                    URL.revokeObjectURL(url);
+        
+                    resolve();
+                }
+    
+                
+            } catch (error) {
+                console.error('Error al exportar el modelo STL:', error);
+                reject(error);
+            }
+        });
+    }
+    
+
     // render to scene to 
     renderToModelGLTFPreview() {
         try {
@@ -1275,8 +1450,28 @@ export class engine {
             }
 
             setTimeout(() => {
-                export3DBtn.textContent = 'Export 3D Model';
+                export3DBtn.textContent = 'Export 3D Model GLTF';
                 export3DBtn.disabled = false;
+            }, 2000);
+        });
+
+        // Listener para exportar el modelo 3D
+        const export3DBtnSTL = document.getElementById("export-3d-btn-STL");
+        export3DBtnSTL.addEventListener("click", async () => {
+            export3DBtnSTL.textContent = 'Loading...';
+            export3DBtnSTL.disabled = true;
+
+            try {
+                await this.manager3d.exportModelSTL();
+                export3DBtnSTL.textContent = 'Success!';
+            } catch (error) {
+                console.error(error);
+                export3DBtnSTL.textContent = 'Error!';
+            }
+
+            setTimeout(() => {
+                export3DBtnSTL.textContent = 'Export 3D Model STL';
+                export3DBtnSTL.disabled = false;
             }, 2000);
         });
 
