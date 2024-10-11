@@ -161,7 +161,7 @@ div#image-preview {
 }
 /* options image  */
 
-.sectionContentComponentCard {
+#image-section .sectionContentComponentCard {
   border-bottom: 1px solid #000000;
   border-top: 1px solid #000000;
   margin-bottom: 1rem;
@@ -236,12 +236,12 @@ div#image-preview {
   width: 100%;
 }
 
-.sectionContentComponentCard[data-is-open="true"] .icon-bottom {
+#image-section .sectionContentComponentCard[data-is-open="true"] .icon-bottom {
   transform: rotate(0deg);
   transition: all 0.2s ease-in-out;
 }
 
-.sectionContentComponentCard[data-is-open="true"] .captionCardContent {
+#image-section .sectionContentComponentCard[data-is-open="true"] .captionCardContent {
   max-height: 900px; /* Ajustar al contenido */
   opacity: 1;
   transition: max-height 0.5s ease, opacity 0.5s ease;

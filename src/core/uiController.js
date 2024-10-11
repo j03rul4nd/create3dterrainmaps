@@ -41,7 +41,7 @@ export class uiController {
        
         const toggleHeader =  document.getElementById('toggleHeaderImageOptions');
         function toggleContent() {
-            const contentCard = document.querySelector('.sectionContentComponentCard');
+            const contentCard = document.querySelector('#image-section .sectionContentComponentCard');
             const isOpen = contentCard.getAttribute('data-is-open') === 'true';
             
             if (isOpen) {
@@ -49,8 +49,29 @@ export class uiController {
             } else {
                 contentCard.setAttribute('data-is-open', 'true');
             }
+            console.log("contentCard image clciked")
+
         }
         toggleHeader.addEventListener('click', toggleContent);
+
+        // Selecciona el encabezado del nuevo componente
+        const toggleHeaderMapOptions = document.getElementById('toggleHeaderMapOptions');
+
+        function toggleMapContent() {
+            const contentCard = toggleHeaderMapOptions.closest('.sectionContentComponentCard');
+            const isOpen = contentCard.getAttribute('data-is-open') === 'true';
+
+            if (isOpen) {
+                contentCard.setAttribute('data-is-open', 'false');
+            } else {
+                contentCard.setAttribute('data-is-open', 'true');
+            }
+            console.log("contentCard Map clciked")
+        }
+
+        // Añade el evento de clic al nuevo encabezado
+        toggleHeaderMapOptions.addEventListener('click', toggleMapContent);
+
 
     }
 

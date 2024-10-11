@@ -43,7 +43,8 @@ h2#map-title{
     width: 100%;
     display: flex;
     flex-direction: column;
-    align-items: center;
+    align-items: flex-start;
+    gap: 5px;
 }
 .map-options-search-section {
     display: flex;
@@ -92,9 +93,10 @@ button#capture-terrain-btn {
 .data-mapa-current-coordinates {
     display: flex;
     flex-direction: column;
-    align-items: center;
+    align-items: flex-start;
     justify-content: flex-start;
     gap: 5px;
+    width: 100%;
 
 }
 .data-mapa-current-coordinates p {
@@ -119,13 +121,16 @@ button#capture-terrain-btn {
     justify-content: flex-start;
     align-items: baseline;
 }
+#searchcoordstitle{
+    width: 100%;
+}
 .options-map-provider-section {
     display: flex;
     gap: 5px;
     flex-direction: row;
     align-items: center;
     width: 100%;
-    justify-content: center;
+    justify-content: flex-start;
 }
 .params-coords-search-cntr {
     display: flex;
@@ -141,6 +146,13 @@ button#capture-terrain-btn {
     flex-direction: row;
     width: 100%;
 }
+.section-datainfo-map {
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    justify-content: flex-start;
+}
 .params-coords-search-cntr label {
     min-width: 21%;
 }
@@ -149,8 +161,36 @@ button#capture-terrain-btn {
 }
 .titles-options-map{
     font-weight: 700;
-    font-size: 1.2rem;
+    font-size: 1.15rem;
+    opacity: 0.8;
 }
+
+.container-options-map-main {
+    width: 100%;
+}
+#map-section .sectionContentComponentCard {
+    border-bottom: 1px solid #000000;
+    border-top: 1px solid #000000;
+    margin-bottom: 1rem;
+    margin-top: 1rem;
+    overflow: hidden;
+    max-height: 4860px;
+    transition: max-height 0.5s ease, opacity 0.5s ease;
+    position: relative;
+  }
+
+#map-section .sectionContentComponentCard[data-is-open="true"] .icon-bottom {
+    transform: rotate(0deg);
+    transition: all 0.2s ease-in-out;
+}
+  
+#map-section  .sectionContentComponentCard[data-is-open="true"] .captionCardContent {
+    max-height: 900px; /* Ajustar al contenido */
+    opacity: 1;
+    transition: max-height 0.5s ease, opacity 0.5s ease;
+    gap: 15px;
+}
+
 @media (max-width: 600px) {
     #current-coordinates {
         flex-direction: column;
@@ -159,7 +199,7 @@ button#capture-terrain-btn {
     .statuts-current-coords {
         display: flex;
         gap: 5px;
-        align-items: center;
+        align-items: flex-start;
         flex-direction: column;
         width: 100%;
     }
@@ -167,14 +207,14 @@ button#capture-terrain-btn {
         display: flex;
         gap: 5px;
         flex-direction: column;
-        align-items: center;
+        align-items: flex-start;
         width: 100%;
         justify-content: center;
     }
     .params-coords-search-cntr {
         display: flex;
         flex-direction: column;
-        align-items: center;
+        align-items: flex-start;
         gap: 5px;
     }
 
