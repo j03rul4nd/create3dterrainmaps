@@ -154,7 +154,7 @@ button#capture-terrain-btn {
     justify-content: flex-start;
 }
 .params-coords-search-cntr label {
-    min-width: 21%;
+    min-width: 29%;
 }
 .current-value-options-data{
     font-weight: 700;
@@ -164,6 +164,52 @@ button#capture-terrain-btn {
     font-size: 1.15rem;
     opacity: 0.8;
 }
+select#mapProiderOptions {
+    background-color: #f9fafb;
+    border: 1px solid #d1d5db;
+    color: #111827;
+    font-size: 0.875rem;
+    border-radius: 0.5rem;
+    display: block;
+    width: 100%;
+    max-width: 200px;
+    padding: 0.625rem;
+}
+
+/* Estilos minimalistas para input number */
+.input-number {
+    appearance: none;
+    -moz-appearance: textfield; /* Oculta los botones de incremento/decremento en Firefox */
+    width: 100%; /* Ajuste al ancho completo */
+    max-width: 200px;
+    padding: 0.5rem; /* Espaciado interno */
+    border: 1px solid #ccc; /* Borde gris claro */
+    border-radius: 0.25rem; /* Bordes redondeados suaves */
+    font-size: 1rem; /* Tamaño de fuente adecuado */
+    background-color: #fff; /* Fondo blanco */
+    color: #333; /* Color de texto oscuro */
+    transition: border-color 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
+}
+
+.input-number:focus {
+    outline: none;
+    border-color: #007bff; /* Color azul suave para el foco */
+    box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.25); /* Simulación de un ring de foco */
+}
+
+/* Para ocultar los botones de incremento/decremento en Chrome */
+.input-number::-webkit-outer-spin-button,
+.input-number::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+}
+
+#mapProiderOptions :focus {
+    outline: none;
+    border-color: #3b82f6; /* Equivalente a focus:border-blue-500 */
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.5); /* Equivalente a focus:ring-blue-500 */
+}
+
 
 .container-options-map-main {
     width: 100%;

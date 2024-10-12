@@ -32,11 +32,9 @@ class Manager3d {
         boxHelperVisible: true,
         gridVisible: false,
     };
-
     constructor() {
 
     };
-
     // Función para renderizar el terreno en 3D a partir de la imagen
     async  renderTerrain3D(imageUrl, textureImage = false) {
 
