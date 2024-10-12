@@ -65,8 +65,24 @@ class Manager3d {
                 err => reject(err)
             );
         });
+
+        // Obtener las dimensiones de la textura
+        const imageWidth = displacementTexture.image.width;
+        const imageHeight = displacementTexture.image.height;
+
+        // Calcular la relación de aspecto de la imagen
+        const aspectRatio = imageWidth / imageHeight;
+
+        // Ajustar las dimensiones de la geometría del plano según la relación de aspecto
+        const planeWidth = 10 * aspectRatio; // El ancho de la geometría se escala según el aspecto
+        const planeHeight = 10; // Mantener la altura fija, o también ajustar si es necesario
+
+        // Crear la geometría del plano con el tamaño ajustado
+        // const planeGeometry = new THREE.PlaneGeometry(planeWidth, planeHeight, 256, 256);
+
+
         // Crear la geometría del plano
-        const planeGeometry = new THREE.PlaneGeometry(10, 10, 256, 256);
+        const planeGeometry = new THREE.PlaneGeometry(planeWidth, planeHeight, 256, 256);
     
         // Crear el material con el desplazamiento y la textura de color
         const material = new THREE.ShaderMaterial({
@@ -565,8 +581,6 @@ class Manager3d {
             await this.renderTerrain3D(image);
         }
     }
-    
-
     export3DModel() {
         return new Promise((resolve, reject) => {
             try {
@@ -750,7 +764,6 @@ class Manager3d {
             }
         });
     }
-
     exportModelSTL() {
         return new Promise((resolve, reject) => {
             try {
@@ -923,8 +936,6 @@ class Manager3d {
             }
         });
     }
-    
-
     // render to scene to 
     renderToModelGLTFPreview() {
         try {
