@@ -32,6 +32,13 @@ class Manager3d {
         boxHelperVisible: true,
         gridVisible: false,
     };
+
+    raycaster = new THREE.Raycaster(); // Añadir el Raycaster
+    pointer = new THREE.Vector2(); // Añadir el Vector2 para el cursor
+    helper = null; // Añadir un helper para mostrar la posición de intersección (opcional)
+
+
+
     constructor() {
 
     };
@@ -262,6 +269,12 @@ class Manager3d {
         // add grid to scene
         this.initGridHelper();
 
+
+        //this.initCursorHelper();
+
+        // Listener para el movimiento del cursor
+        // canvas3D.addEventListener('pointermove', this.onPointerMove.bind(this));
+
         // Animar la escena
         const animate = () => {
             requestAnimationFrame(animate);
@@ -287,6 +300,68 @@ class Manager3d {
 
         await this.transforImgageTo3D();
     }
+    onPointerMove(event) {
+        // Obtener el rectángulo que define la posición y tamaño del canvas en la ventana
+        const rect = this.renderer.domElement.getBoundingClientRect();
+    
+        // Ajustar las coordenadas del puntero con respecto a la posición del canvas en la ventana
+        this.pointer.x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
+        this.pointer.y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
+    
+        // Usar el raycaster para detectar intersecciones
+        this.raycaster.setFromCamera(this.pointer, this.camera);
+    
+        // Obtener la malla del terreno
+        const terrainMeshPreview = this.scene.getObjectByName('terrainMeshPreview');
+    
+        if (terrainMeshPreview) {
+            const intersects = this.raycaster.intersectObject(terrainMeshPreview);
+    
+            if (intersects.length > 0) {
+                const intersect = intersects[0]; // Obtener el primer punto de intersección
+    
+                // Mover el helper (flecha) a la posición de intersección
+                this.helper.position.copy(intersect.point);
+                this.helper.lookAt(intersect.point.clone().add(intersect.face.normal));
+
+    
+                // Crear el vector de dirección usando la normal de la cara en el punto de intersección
+                const normalVector = new THREE.Vector3()
+                    .copy(intersect.face.normal) // Usar la normal de la cara
+                    //.negate() // Invierte la normal
+                    .normalize(); // Asegurarse de que está normalizado
+
+    
+                // Definir la posición hacia donde debe apuntar el helper, un poco por delante del punto de intersección
+                const lookAtPosition = new THREE.Vector3()
+                    .copy(intersect.point)
+                    .add(normalVector); // Desplazar en dirección de la normal
+    
+                // Hacer que la flecha mire hacia la posición calculada
+                this.helper.lookAt(lookAtPosition);
+                //this.helper.rotation.x += Math.PI / 2; // Ajustar la orientación
+
+                const arrowHelper = new THREE.ArrowHelper(normalVector, intersect.point, 1, 0xff0000);
+                this.scene.add(arrowHelper);
+
+            }
+        }
+    }
+    
+    
+    initCursorHelper(){
+        // Crear un helper opcional para visualizar la intersección
+        //const geometryHelper = new THREE.ConeGeometry( 0.2, 1, 3 );
+         const geometryHelper = new THREE.ConeGeometry(.05, 0.20, 3); // Reduce el tamaño
+
+        geometryHelper.translate(0, 0.1, 0); // Ajusta la altura también
+        //geometryHelper.translate( 0, 0.5, 0 );
+        //geometryHelper.rotateX( Math.PI / 2 );
+        this.helper = new THREE.Mesh( geometryHelper, new THREE.MeshNormalMaterial() );
+        this.scene.add( this.helper );
+    }
+
+
     onWindowResize() {
         // Actualizar el aspecto de la cámara con las nuevas dimensiones
         this.camera.aspect = window.innerWidth / window.innerHeight;
@@ -938,30 +1013,30 @@ class Manager3d {
     renderToModelGLTFPreview() {
         try {
             console.log('Render para previsualización de modelo GLTF clicked');
-        
+    
             // Obtener la malla del terreno actual
             const terrainMesh = this.scene.getObjectByName('terrainMesh');
             if (!terrainMesh) {
                 console.error('No se encontró la malla del terreno para exportar.');
                 return;
             }
-
+    
             // Clonar la geometría y el material para no afectar los originales
             const geometry = terrainMesh.geometry.clone();
             const originalMaterial = terrainMesh.material;
-
+    
             // Obtener los atributos necesarios para el desplazamiento
             const positionAttribute = geometry.attributes.position;
             const uvAttribute = geometry.attributes.uv;
             const displacementTexture = originalMaterial.uniforms.uDisplacementTexture.value;
             const displacementScale = originalMaterial.uniforms.uDisplacementScale.value;
-
+    
             // Asegurarse de que la textura de desplazamiento esté cargada
             if (!displacementTexture.image) {
                 console.error('La textura de desplazamiento aún no está cargada.');
                 return;
             }
-
+    
             // Crear un canvas para extraer los datos de la textura de desplazamiento
             const displacementCanvas = document.createElement('canvas');
             displacementCanvas.width = displacementTexture.image.width;
@@ -969,7 +1044,7 @@ class Manager3d {
             const displacementContext = displacementCanvas.getContext('2d');
             displacementContext.drawImage(displacementTexture.image, 0, 0);
             const displacementImageData = displacementContext.getImageData(0, 0, displacementCanvas.width, displacementCanvas.height).data;
-
+    
             // Aplicar el desplazamiento a cada vértice
             for (let i = 0; i < positionAttribute.count; i++) {
                 let x = positionAttribute.getX(i);
@@ -977,73 +1052,78 @@ class Manager3d {
                 let z = positionAttribute.getZ(i);
                 let u = uvAttribute.getX(i);
                 let v = uvAttribute.getY(i);
-
+    
                 u = THREE.MathUtils.clamp(u, 0, 1);
                 v = THREE.MathUtils.clamp(v, 0, 1);
-
+    
                 let px = Math.floor(u * (displacementCanvas.width - 1));
                 let py = Math.floor(v * (displacementCanvas.height - 1));
                 let flippedPy = displacementCanvas.height - py - 1;
-
+    
                 px = THREE.MathUtils.clamp(px, 0, displacementCanvas.width - 1);
                 flippedPy = THREE.MathUtils.clamp(flippedPy, 0, displacementCanvas.height - 1);
-
+    
                 const index = (flippedPy * displacementCanvas.width + px) * 4;
-
+    
                 if (index < 0 || index >= displacementImageData.length) {
                     continue;
                 }
-
+    
                 const r = displacementImageData[index] / 255;
                 const displacement = r * displacementScale;
-
+    
                 z += displacement;
                 positionAttribute.setXYZ(i, x, y, z);
             }
-
+    
             positionAttribute.needsUpdate = true;
             geometry.computeVertexNormals();
             geometry.computeBoundingBox();
-
+    
             // Crear un nuevo material estándar con la textura de color
             const previewMaterial = new THREE.MeshStandardMaterial({
                 map: originalMaterial.uniforms.uColorTexture.value,
                 side: THREE.DoubleSide,
             });
-
+    
             // Crear una nueva malla para la previsualización en la escena
             const previewMesh = new THREE.Mesh(geometry, previewMaterial);
             previewMesh.name = 'terrainMeshPreview'; // Nombrar la malla para futuras referencias
-
+    
+            // Mantener la misma rotación de la malla original
+            previewMesh.rotation.copy(terrainMesh.rotation);
+    
             // Remover la malla actual de la escena
             const existingMesh = this.scene.getObjectByName('terrainMesh');
             if (existingMesh) {
                 this.scene.remove(existingMesh);
             }
-
+    
             const existingTerrainPreview = this.scene.getObjectByName('terrainMeshPreview');
             if(existingTerrainPreview){
                 this.scene.remove(existingTerrainPreview);
             }
-
+    
             // Agregar la nueva malla previsualizada a la escena
             this.scene.add(previewMesh);
-
+    
             // Adjuntar controles de transformación a la nueva malla, si es necesario
             this.transformControls.attach(previewMesh);
-            //this.transformControls.setMode('rotate');
-
+    
             // Opcional: Añadir un BoxHelper para visualizar los límites del modelo
             this.initBoxHelper(previewMesh);
-
+    
             // Renderizar la escena con la nueva malla
             this.renderer.render(this.scene, this.camera);
-
+    
             console.log('Malla de previsualización renderizada.');
         } catch (error) {
             console.error(error);
-        }   
+        }
     }
+    
+
+
     // aun en desarrollo:
     initViewHelper(){
         // Inicializar el ViewHelper
