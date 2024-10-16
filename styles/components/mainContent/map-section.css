@@ -22,7 +22,7 @@ h2#map-title{
     justify-content: center;
     background: linear-gradient(#fff, #fff) padding-box, linear-gradient(90deg, #ed6e61, #6359e1) border-box;
     border: 3px solid transparent;
-
+    animation: borderGradientAnimation 10s ease-in-out infinite alternate;
     max-width: 1000px;
 }
 
@@ -282,3 +282,26 @@ select#mapProiderOptions {
         width: 100%;
     }
 }
+
+@keyframes borderGradientAnimation {
+    0% {
+      background: linear-gradient(#fff, #fff) padding-box,
+                  linear-gradient(90deg, #ed6e61, #6359e1) border-box;
+    }
+    25% {
+      background: linear-gradient(#fff, #fff) padding-box,
+                  linear-gradient(90deg, #f08572, #7b6df2) border-box;
+    }
+    50% {
+      background: linear-gradient(#fff, #fff) padding-box,
+                  linear-gradient(90deg, #6359e1, #ed6e61) border-box;
+    }
+    75% {
+      background: linear-gradient(#fff, #fff) padding-box,
+                  linear-gradient(90deg, #7b6df2, #f08572) border-box;
+    }
+    100% {
+      background: linear-gradient(#fff, #fff) padding-box,
+                  linear-gradient(90deg, #ed6e61, #6359e1) border-box;
+    }
+  }
