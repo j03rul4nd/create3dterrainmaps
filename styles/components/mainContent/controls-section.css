@@ -24,3 +24,15 @@ button#export-3d-btn-STL {
     width: 200px;
     gap: 5px;
 }
+@media (min-width: 768px) {
+    #controls-group {
+        display: flex;
+        align-items: center;
+        justify-content: flex-start;
+        align-content: flex-start;
+        flex-direction: row;
+        flex-wrap: nowrap;
+        width: 100%;
+        gap: 5px;
+    }
+}
