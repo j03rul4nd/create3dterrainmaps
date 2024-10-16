@@ -80,3 +80,34 @@ section.visible, article.visible {
     cursor: wait;
     /* Puedes añadir más estilos o animaciones */
 }
+
+.image-cover-section-hero{
+    /* border-radius: 15px; */
+    width: 100%;
+    /* max-width: 50%; */
+    position: absolute;
+    top: 0;
+    left: 0;
+    z-index: -1;
+    display: flex;
+}
+
+.cover-img-only-mobile{
+    display: none;
+}
+@media (max-width: 768px) { /* Se activa en dispositivos móviles */
+    .cover-img-only-mobile {
+        display: flex; /* Muestra la imagen en dispositivos móviles */
+        width: 100%;
+        /* max-width: 50%; */
+        position: absolute;
+        top: 0;
+        left: 0;
+        z-index: -1;
+        display: flex;
+    }
+    .image-cover-section-hero{
+        display: none;
+    }
+    
+}
