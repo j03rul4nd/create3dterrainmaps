@@ -95,7 +95,7 @@ section.visible, article.visible {
 .cover-img-only-mobile{
     display: none;
 }
-@media (max-width: 768px) { /* Se activa en dispositivos móviles */
+@media (max-width: 500px) { /* Se activa en dispositivos móviles */
     .cover-img-only-mobile {
         display: flex; /* Muestra la imagen en dispositivos móviles */
         width: 100%;
