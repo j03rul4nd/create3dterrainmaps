@@ -156,6 +156,7 @@ button#capture-terrain-btn {
 }
 .params-coords-search-cntr label {
     min-width: 29%;
+    text-align: center;
 }
 .current-value-options-data{
     font-weight: 700;
