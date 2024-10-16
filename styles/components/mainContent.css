@@ -5,3 +5,13 @@ main {
     justify-content: flex-start;
     align-items: center;
 }
+.line-part-content-share{
+    background: linear-gradient(90deg, #fffcf2 0%, rgb(255, 188, 79) 32.8125%, rgb(208, 97, 247) 100%);
+    border-radius: 100px;
+    flex: none;
+    height: 4px;
+    overflow: hidden;
+    position: relative;
+    width: 100%;
+    margin-top: 1rem;
+}
