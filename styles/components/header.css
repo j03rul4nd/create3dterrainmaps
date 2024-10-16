@@ -19,7 +19,7 @@ header h1 {
     align-items: center;
 }
 
-header p {
+.not-safari header p {
     display: inline-block;
     vertical-align: top;
     will-change: transform;
@@ -41,6 +41,29 @@ header p {
     color: white;
     mix-blend-mode: difference;
 
+}
+.safari header p{
+    display: inline-block;
+    vertical-align: top;
+    will-change: transform;
+    display: block;
+    text-align: start;
+    /* width: 100%; */
+    /* font-size: 2rem; */
+
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 15px;
+    /* border: 1px solid rgba(255, 255, 255, 0.3); */
+    box-shadow: 0 4px 30px rgba(0, 0, 0, 0.1);
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    padding: 20px;
+    color: white;
+    mix-blend-mode: difference;
+    /* Aquí puedes aplicar estilos alternativos o dejarlo vacío */
+    backdrop-filter: none; /* O eliminar esta propiedad si no se quiere nada */
 }
 
 /* Refinamientos para pantallas grandes */

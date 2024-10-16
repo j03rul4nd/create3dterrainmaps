@@ -10,9 +10,22 @@ export class uiController {
         this.initListenersSections();
         this.setJuicyEffect();
         this.initListenerFileOptionsImage();
+        this.detectbrowser();
     }
 
+    detectbrowser(){
+        // Detectar si es Safari
+        const isSafari = /^((?!chrome|android).)*safari/i.test(navigator.userAgent);
 
+        if (isSafari) {
+            // Si es Safari, agregamos una clase al body
+            document.body.classList.add('safari');
+        } else {
+            // Si no es Safari, podemos aplicar la clase para el blur
+            document.body.classList.add('not-safari');
+        }
+
+    }
 
     // Método para configurar y aplicar lazy loading con Intersection Observer
     initLazyLoading() {
