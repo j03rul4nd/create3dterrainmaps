@@ -81,7 +81,7 @@ header h1 {
     background-repeat: repeat;
     background-position: center center;
     background-size: 16.8px;
-    background-image: url(points.svg);
+    background-image: url(/points.svg);
     border: 0px;
    
 }
