@@ -49,21 +49,20 @@ header h1 {
     display: block;
     text-align: start;
     /* width: 100%; */
-    /* font-size: 2rem; */
-
-    background: rgba(255, 255, 255, 0.1);
-    border-radius: 15px;
+    font-size: 2rem;
+    /* backdrop-filter: blur(10px); */
+    /* background: rgba(255, 255, 255, 0.1); */
+    /* border-radius: 15px; */
     /* border: 1px solid rgba(255, 255, 255, 0.3); */
-    box-shadow: 0 4px 30px rgba(0, 0, 0, 0.1);
+    /* box-shadow: 0 4px 30px rgba(0, 0, 0, 0.1); */
     display: flex;
     flex-direction: column;
     justify-content: center;
     align-items: center;
     padding: 20px;
-    color: white;
-    mix-blend-mode: difference;
-    /* Aquí puedes aplicar estilos alternativos o dejarlo vacío */
-    backdrop-filter: none; /* O eliminar esta propiedad si no se quiere nada */
+    /* color: white; */
+    font-weight: 700;
+    /* mix-blend-mode: difference; */
 }
 
 /* Refinamientos para pantallas grandes */
