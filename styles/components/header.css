@@ -64,6 +64,28 @@ header h1 {
     /* mix-blend-mode: difference; */
 }
 
+.background-grain-noise{
+    flex: none;
+    height: 100vh;
+    left: calc(50.00000000000002% - 100% / 2);
+    opacity: .1;
+    position: fixed;
+    top: 206px;
+    width: 100%;
+    z-index: -2;
+}
+.noiseback{
+    position: absolute;
+    border-radius: inherit;
+    inset: 0px;
+    background-repeat: repeat;
+    background-position: center center;
+    background-size: 16.8px;
+    background-image: url(points.svg);
+    border: 0px;
+   
+}
+
 /* Refinamientos para pantallas grandes */
 @media (min-width: 1024px) {
     header h1 {
