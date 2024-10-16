@@ -89,6 +89,7 @@ button#capture-terrain-btn {
     background: linear-gradient(#fff, #fff) padding-box, linear-gradient(90deg, #ed6e61, #6359e1) border-box;
     border: 3px solid transparent;
     cursor: pointer;
+    font-size: 1rem;
 }
 .data-mapa-current-coordinates {
     display: flex;

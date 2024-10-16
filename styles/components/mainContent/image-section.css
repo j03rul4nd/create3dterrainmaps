@@ -13,7 +13,9 @@
   .responsive-image-section-options {
       width: 100%;
   }
-
+  #choseYourImageTerrainSection:hover {
+    background: #FF9800;
+}
   #content-terrain-image {
     position: relative;
     overflow: hidden;
@@ -87,6 +89,7 @@
     background: linear-gradient(#fff, #fff) padding-box, linear-gradient(90deg, #ed6e61, #6359e1) border-box;
     border: 3px solid transparent;
     cursor: pointer;
+    font-size: 1rem;
 }
 
 button#custom-file-upload, #clear-file-upload {
